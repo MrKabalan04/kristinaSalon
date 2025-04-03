@@ -17,6 +17,7 @@ const API_URL = window.location.hostname === 'localhost'
 const firebaseConfig = {
     apiKey: "AIzaSyBimsxijDPv8t_pEtoFPpvCMxIopvQ3_y8",
     authDomain: "kristinanails.firebaseapp.com",
+    databaseURL: "https://kristinanails-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "kristinanails",
     storageBucket: "kristinanails.firebasestorage.app",
     messagingSenderId: "1031548052588",
@@ -28,7 +29,25 @@ const firebaseConfig = {
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
-const db = firebase.firestore();
+const db = firebase.database();
+
+// Sign in anonymously to allow database access
+firebase.auth().signInAnonymously()
+    .then(() => {
+        console.log('Signed in anonymously');
+    })
+    .catch((error) => {
+        console.error('Error signing in:', error);
+    });
+
+// Listen for auth state changes
+firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+        console.log('User is signed in:', user.uid);
+    } else {
+        console.log('User is signed out');
+    }
+});
 
 // DOM Elements
 const loginContainer = document.querySelector('.login-container');
@@ -114,27 +133,18 @@ async function initializeApp() {
     }
 }
 
-// Load data from Firestore
+// Load data from Firebase Realtime Database
 async function loadData() {
     try {
-        console.log('Loading data from Firestore...');
+        console.log('Loading data from Firebase...');
         
-        // Fetch services
-        const servicesSnapshot = await db.collection('services').get();
-        services = [];
-        servicesSnapshot.forEach(doc => {
-            services.push({
-                id: doc.id,
-                ...doc.data()
-            });
-        });
+        // Fetch data from Firebase
+        const snapshot = await db.ref('/').once('value');
+        const data = snapshot.val() || {};
         
-        // Fetch categories
-        const categoriesSnapshot = await db.collection('categories').get();
-        categories = [];
-        categoriesSnapshot.forEach(doc => {
-            categories.push(doc.data().name);
-        });
+        // Extract services and categories
+        services = Array.isArray(data.services) ? data.services : [];
+        categories = Array.isArray(data.categories) ? data.categories : [];
         
         console.log('Data loaded:', { services, categories });
         
@@ -162,55 +172,33 @@ async function loadData() {
     }
 }
 
-// Save data to Firestore
+// Save data to Firebase Realtime Database
 async function saveData() {
     try {
-        console.log('Saving data to Firestore...');
-        const batch = db.batch();
+        console.log('Saving data to Firebase...');
         
-        // Clear existing collections
-        const servicesSnapshot = await db.collection('services').get();
-        servicesSnapshot.forEach(doc => {
-            batch.delete(doc.ref);
+        // Filter out any invalid services or categories
+        const validServices = services.filter(service => service && service.name);
+        const validCategories = categories.filter(category => category && typeof category === 'string');
+        
+        // Save to Firebase
+        await db.ref('/').set({
+            services: validServices,
+            categories: validCategories
         });
         
-        const categoriesSnapshot = await db.collection('categories').get();
-        categoriesSnapshot.forEach(doc => {
-            batch.delete(doc.ref);
-        });
-        
-        // Add new services
-        services.forEach(service => {
-            if (service && service.name) {
-                const docRef = db.collection('services').doc();
-                batch.set(docRef, {
-                    name: service.name,
-                    price: service.price,
-                    category: service.category || '',
-                    priceType: service.priceType || 'fixed'
-                });
-            }
-        });
-        
-        // Add new categories
-        categories.forEach(category => {
-            if (category && typeof category === 'string') {
-                const docRef = db.collection('categories').doc();
-                batch.set(docRef, { name: category });
-            }
-        });
-        
-        // Commit the batch
-        await batch.commit();
         console.log('Data saved successfully');
         
         // Save to localStorage as backup
-        localStorage.setItem('salonData', JSON.stringify({ services, categories }));
+        localStorage.setItem('salonData', JSON.stringify({ 
+            services: validServices, 
+            categories: validCategories 
+        }));
         
         return true;
     } catch (error) {
         console.error('Error saving data:', error);
-        showNotification('Failed to save to Firestore. Changes saved locally.', false);
+        showNotification('Failed to save to Firebase. Changes saved locally.', false);
         return false;
     }
 }
@@ -487,7 +475,7 @@ async function handleServiceSubmit(event) {
         services.push(serviceData);
     }
     
-    // Save to Firestore
+    // Save to Firebase
     const success = await saveData();
     if (success) {
         showNotification(currentEditIndex !== null ? 'Service updated successfully' : 'Service added successfully');
@@ -532,7 +520,7 @@ async function handleCategorySubmit(event) {
     // Add new category
     categories.push(categoryName);
     
-    // Save to Firestore
+    // Save to Firebase
     const success = await saveData();
     if (success) {
         showNotification('Category added successfully');
