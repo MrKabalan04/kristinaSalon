@@ -84,26 +84,32 @@ async function initializeApp() {
 // Load data from server
 async function loadData() {
     try {
+        console.log('Attempting to load data from server...');
         // Try to fetch from MongoDB using our Netlify function
         const response = await fetch(`${API_URL}/getData`);
+        console.log('Server response:', response.status);
         if (response.ok) {
             const result = await response.json();
+            console.log('Server data:', result);
             if (result.success && result.data) {
                 services = Array.isArray(result.data.services) ? result.data.services : [];
                 categories = Array.isArray(result.data.categories) ? result.data.categories : [];
                 
                 // Save to localStorage as backup
                 localStorage.setItem('salonData', JSON.stringify({ services, categories }));
+                console.log('Data loaded successfully:', { services, categories });
             } else {
                 throw new Error(result.error || 'Invalid data format received from server');
             }
         } else {
+            console.log('Server request failed, trying localStorage...');
             // If fetch fails, try localStorage
             const localData = localStorage.getItem('salonData');
             if (localData) {
                 const jsonData = JSON.parse(localData);
                 services = Array.isArray(jsonData.services) ? jsonData.services : [];
                 categories = Array.isArray(jsonData.categories) ? jsonData.categories : [];
+                console.log('Loaded from localStorage:', { services, categories });
             }
         }
         
@@ -120,6 +126,7 @@ async function loadData() {
             const jsonData = JSON.parse(localData);
             services = Array.isArray(jsonData.services) ? jsonData.services : [];
             categories = Array.isArray(jsonData.categories) ? jsonData.categories : [];
+            console.log('Loaded from localStorage (after error):', { services, categories });
             
             renderServices();
             renderCategories();

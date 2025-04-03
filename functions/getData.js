@@ -29,10 +29,13 @@ exports.handler = async function(event, context) {
                 "Access-Control-Allow-Origin": "*",
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify(data || {
-                services: [],
-                categories: [],
-                credentials: { username: 'admin', password: 'admin' }
+            body: JSON.stringify({
+                success: true,
+                data: data || {
+                    services: [],
+                    categories: [],
+                    credentials: { username: 'admin', password: 'admin' }
+                }
             })
         };
     } catch (error) {
