@@ -12,33 +12,62 @@ const firebaseConfig = {
     storageBucket: "kristinanails.firebasestorage.app",
     messagingSenderId: "1031548052588",
     appId: "1:1031548052588:web:730d1eb220ba5401b3a449",
-    measurementId: "G-3SN5X0BLZM",
-    databaseURL: "https://kristinanails-default-rtdb.firebaseio.com"
+    measurementId: "G-3SN5X0BLZM"
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.firestore();
 
-// Function to fetch services from Firebase
+// Function to fetch services from Firestore
 async function fetchServices() {
     try {
-        console.log('Fetching services from Firebase...');
-        const dataRef = database.ref('data');
-        const snapshot = await dataRef.get();
+        console.log('Fetching services from Firestore...');
+        const servicesSnapshot = await db.collection('services').get();
         
-        if (!snapshot.exists()) {
-            console.log('No data in Firebase');
+        if (servicesSnapshot.empty) {
+            console.log('No services found in Firestore');
             return [];
         }
         
-        const data = snapshot.val();
-        console.log('Fetched data:', data);
+        const services = [];
+        servicesSnapshot.forEach(doc => {
+            services.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
         
-        // Return services array or empty array if no services
-        return (data && Array.isArray(data.services)) ? data.services : [];
+        console.log('Fetched services:', services);
+        return services;
     } catch (error) {
         console.error('Error fetching services:', error);
+        return [];
+    }
+}
+
+// Function to fetch categories from Firestore
+async function fetchCategories() {
+    try {
+        console.log('Fetching categories from Firestore...');
+        const categoriesSnapshot = await db.collection('categories').get();
+        
+        if (categoriesSnapshot.empty) {
+            console.log('No categories found in Firestore');
+            return [];
+        }
+        
+        const categories = [];
+        categoriesSnapshot.forEach(doc => {
+            categories.push(doc.data().name);
+        });
+        
+        console.log('Fetched categories:', categories);
+        return categories;
+    } catch (error) {
+        console.error('Error fetching categories:', error);
         return [];
     }
 }
@@ -53,8 +82,12 @@ async function renderServices() {
     }
     
     try {
-        const services = await fetchServices();
-        console.log('Services to render:', services);
+        const [services, categories] = await Promise.all([
+            fetchServices(),
+            fetchCategories()
+        ]);
+        
+        console.log('Data fetched:', { services, categories });
         
         if (!services || services.length === 0) {
             console.log('No services to display');
@@ -68,6 +101,7 @@ async function renderServices() {
         // Group services by category
         const servicesByCategory = {};
         services.forEach(service => {
+            if (!service) return; // Skip null/undefined services
             const category = service.category || 'Other Services';
             if (!servicesByCategory[category]) {
                 servicesByCategory[category] = [];
@@ -75,47 +109,29 @@ async function renderServices() {
             servicesByCategory[category].push(service);
         });
         
-        // Render services by category
-        Object.keys(servicesByCategory).sort().forEach(category => {
-            if (category !== 'Other Services') {
-                // Add category header
-                const categoryHeader = document.createElement('div');
-                categoryHeader.className = 'category-header';
-                categoryHeader.textContent = category;
-                servicesSection.appendChild(categoryHeader);
-                
-                // Add services in this category
-                servicesByCategory[category].forEach(service => {
-                    const serviceItem = document.createElement('div');
-                    serviceItem.className = 'service-item';
-                    
-                    // Format price based on price type
-                    let price = service.price || '';
-                    if (service.priceType === 'perNail') {
-                        price = `${price} /nail`;
-                    }
-                    
-                    serviceItem.innerHTML = `
-                        <span class="service-name">${service.name}</span>
-                        <span class="service-price">${price}</span>
-                    `;
-                    
-                    servicesSection.appendChild(serviceItem);
-                });
-            }
+        // Sort categories alphabetically, but keep "Other Services" at the end
+        const sortedCategories = Object.keys(servicesByCategory).sort((a, b) => {
+            if (a === 'Other Services') return 1;
+            if (b === 'Other Services') return -1;
+            return a.localeCompare(b);
         });
         
-        // Add uncategorized services last
-        if (servicesByCategory['Other Services'] && servicesByCategory['Other Services'].length > 0) {
+        // Render services by category
+        sortedCategories.forEach(category => {
+            // Add category header
             const categoryHeader = document.createElement('div');
             categoryHeader.className = 'category-header';
-            categoryHeader.textContent = 'Other Services';
+            categoryHeader.textContent = category;
             servicesSection.appendChild(categoryHeader);
             
-            servicesByCategory['Other Services'].forEach(service => {
+            // Add services in this category
+            servicesByCategory[category].forEach(service => {
+                if (!service || !service.name) return; // Skip invalid services
+                
                 const serviceItem = document.createElement('div');
                 serviceItem.className = 'service-item';
                 
+                // Format price based on price type
                 let price = service.price || '';
                 if (service.priceType === 'perNail') {
                     price = `${price} /nail`;
@@ -128,7 +144,7 @@ async function renderServices() {
                 
                 servicesSection.appendChild(serviceItem);
             });
-        }
+        });
         
         console.log('Services rendered successfully');
     } catch (error) {
@@ -175,16 +191,27 @@ function toggleDarkMode() {
 }
 
 // Initialize the page
-document.addEventListener('DOMContentLoaded', () => {
-    // Apply theme
-    applyTheme();
-    
-    // Add event listener to theme toggle button
-    const themeToggleBtn = document.getElementById('toggle-theme-btn');
-    if (themeToggleBtn) {
-        themeToggleBtn.addEventListener('click', toggleDarkMode);
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        console.log('Initializing Firebase...');
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        console.log('Firebase initialized');
+        
+        // Apply theme
+        applyTheme();
+        
+        // Add event listener to theme toggle button
+        const themeToggleBtn = document.getElementById('toggle-theme-btn');
+        if (themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', toggleDarkMode);
+        }
+        
+        // Load and display services
+        await renderServices();
+    } catch (error) {
+        console.error('Error during initialization:', error);
     }
-    
-    // Load and display services
-    renderServices();
 });

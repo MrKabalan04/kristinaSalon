@@ -13,6 +13,23 @@ const API_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:8888/.netlify/functions' 
   : '/.netlify/functions';
 
+// Initialize Firebase
+const firebaseConfig = {
+    apiKey: "AIzaSyBimsxijDPv8t_pEtoFPpvCMxIopvQ3_y8",
+    authDomain: "kristinanails.firebaseapp.com",
+    projectId: "kristinanails",
+    storageBucket: "kristinanails.firebasestorage.app",
+    messagingSenderId: "1031548052588",
+    appId: "1:1031548052588:web:730d1eb220ba5401b3a449",
+    measurementId: "G-3SN5X0BLZM"
+};
+
+// Initialize Firebase
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.firestore();
+
 // DOM Elements
 const loginContainer = document.querySelector('.login-container');
 const adminPanel = document.querySelector('.admin-panel');
@@ -97,38 +114,39 @@ async function initializeApp() {
     }
 }
 
-// Load data from Firebase
+// Load data from Firestore
 async function loadData() {
     try {
-        // Try to fetch from Firebase using our Netlify function
-        const response = await fetch(`${API_URL}/getData`);
-        if (response.ok) {
-            const result = await response.json();
-            if (result.success && result.data) {
-                services = Array.isArray(result.data.services) ? result.data.services : [];
-                categories = Array.isArray(result.data.categories) ? result.data.categories : [];
-                
-                // Save to localStorage as backup
-                localStorage.setItem('salonData', JSON.stringify({ services, categories }));
-            } else {
-                throw new Error(result.error || 'Invalid data format received from server');
-            }
-        } else {
-            // If fetch fails, try localStorage
-            const localData = localStorage.getItem('salonData');
-            if (localData) {
-                const jsonData = JSON.parse(localData);
-                services = Array.isArray(jsonData.services) ? jsonData.services : [];
-                categories = Array.isArray(jsonData.categories) ? jsonData.categories : [];
-            }
-        }
+        console.log('Loading data from Firestore...');
+        
+        // Fetch services
+        const servicesSnapshot = await db.collection('services').get();
+        services = [];
+        servicesSnapshot.forEach(doc => {
+            services.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+        
+        // Fetch categories
+        const categoriesSnapshot = await db.collection('categories').get();
+        categories = [];
+        categoriesSnapshot.forEach(doc => {
+            categories.push(doc.data().name);
+        });
+        
+        console.log('Data loaded:', { services, categories });
+        
+        // Save to localStorage as backup
+        localStorage.setItem('salonData', JSON.stringify({ services, categories }));
         
         renderServices();
         renderCategories();
         updateCategorySelects();
     } catch (error) {
         console.error('Error loading data:', error);
-        showNotification('Error loading data from server. Using local data if available.', false);
+        showNotification('Error loading data. Using local data if available.', false);
         
         // Try localStorage as fallback
         const localData = localStorage.getItem('salonData');
@@ -144,45 +162,56 @@ async function loadData() {
     }
 }
 
-// Save data to Firebase
+// Save data to Firestore
 async function saveData() {
     try {
-        const dataToSave = {
-            services: services,
-            categories: categories,
-            credentials: {
-                username: 'admin',
-                password: 'admin'
-            }
-        };
-
-        // Save to localStorage as backup
-        localStorage.setItem('salonData', JSON.stringify(dataToSave));
-
-        // Save to Firebase using our Netlify function
-        const response = await fetch(`${API_URL}/saveData`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(dataToSave)
+        console.log('Saving data to Firestore...');
+        const batch = db.batch();
+        
+        // Clear existing collections
+        const servicesSnapshot = await db.collection('services').get();
+        servicesSnapshot.forEach(doc => {
+            batch.delete(doc.ref);
         });
         
-        if (!response.ok) {
-            throw new Error('Failed to save to server');
-        }
+        const categoriesSnapshot = await db.collection('categories').get();
+        categoriesSnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
         
-        const result = await response.json();
-        if (!result.success) {
-            throw new Error(result.error || 'Failed to save data');
-        }
+        // Add new services
+        services.forEach(service => {
+            if (service && service.name) {
+                const docRef = db.collection('services').doc();
+                batch.set(docRef, {
+                    name: service.name,
+                    price: service.price,
+                    category: service.category || '',
+                    priceType: service.priceType || 'fixed'
+                });
+            }
+        });
+        
+        // Add new categories
+        categories.forEach(category => {
+            if (category && typeof category === 'string') {
+                const docRef = db.collection('categories').doc();
+                batch.set(docRef, { name: category });
+            }
+        });
+        
+        // Commit the batch
+        await batch.commit();
+        console.log('Data saved successfully');
+        
+        // Save to localStorage as backup
+        localStorage.setItem('salonData', JSON.stringify({ services, categories }));
         
         return true;
     } catch (error) {
         console.error('Error saving data:', error);
-        showNotification('Failed to save data to server. Changes are only saved locally.', false);
-        // Even if server save fails, data is in localStorage
-        return true;
+        showNotification('Failed to save to Firestore. Changes saved locally.', false);
+        return false;
     }
 }
 
@@ -245,7 +274,7 @@ function renderCategories() {
 }
 
 // Edit category
-function editCategory(categoryName) {
+async function editCategory(categoryName) {
     const oldName = categoryName;
     const newName = prompt('Enter new category name:', categoryName);
     
@@ -264,14 +293,13 @@ function editCategory(categoryName) {
             });
             
             // Save changes
-            saveData().then(success => {
-                if (success) {
-                    showNotification('Category updated successfully');
-                    renderCategories();
-                    renderServices();
-                    updateCategorySelects();
-                }
-            });
+            const success = await saveData();
+            if (success) {
+                showNotification('Category updated successfully');
+                renderCategories();
+                renderServices();
+                updateCategorySelects();
+            }
         }
     }
 }
@@ -355,14 +383,10 @@ function handleNavigation(e) {
 // Delete service
 async function deleteService(serviceName) {
     if (confirm('Are you sure you want to delete this service?')) {
-        const index = services.findIndex(s => s.name === serviceName);
-        if (index !== -1) {
-            services.splice(index, 1);
-            await saveData();
-            renderServices();
-            updateCategorySelects();
-            showNotification('Service deleted successfully!');
-        }
+        services = services.filter(service => service.name !== serviceName);
+        await saveData();
+        renderServices();
+        showNotification('Service deleted successfully');
     }
 }
 
@@ -463,7 +487,7 @@ async function handleServiceSubmit(event) {
         services.push(serviceData);
     }
     
-    // Save to Firebase
+    // Save to Firestore
     const success = await saveData();
     if (success) {
         showNotification(currentEditIndex !== null ? 'Service updated successfully' : 'Service added successfully');
@@ -476,7 +500,15 @@ async function handleServiceSubmit(event) {
 
 // Edit service
 function editService(serviceName) {
-    openServiceModal(serviceName);
+    const service = services.find(s => s.name === serviceName);
+    if (service) {
+        currentEditIndex = services.indexOf(service);
+        document.getElementById('service-name').value = service.name;
+        document.getElementById('service-price').value = service.price;
+        document.getElementById('service-category').value = service.category || '';
+        currentPriceType = service.priceType || 'fixed';
+        serviceModal.style.display = 'block';
+    }
 }
 
 // Handle category submission
@@ -500,7 +532,7 @@ async function handleCategorySubmit(event) {
     // Add new category
     categories.push(categoryName);
     
-    // Save to Firebase
+    // Save to Firestore
     const success = await saveData();
     if (success) {
         showNotification('Category added successfully');
