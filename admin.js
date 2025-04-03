@@ -84,12 +84,19 @@ async function initializeApp() {
 // Load data from server
 async function loadData() {
     try {
-        // Try to fetch from data.json first
-        const response = await fetch('data.json');
+        // Try to fetch from MongoDB using our Netlify function
+        const response = await fetch(`${API_URL}/getData`);
         if (response.ok) {
-            const jsonData = await response.json();
-            services = Array.isArray(jsonData.services) ? jsonData.services : [];
-            categories = Array.isArray(jsonData.categories) ? jsonData.categories : [];
+            const result = await response.json();
+            if (result.success && result.data) {
+                services = Array.isArray(result.data.services) ? result.data.services : [];
+                categories = Array.isArray(result.data.categories) ? result.data.categories : [];
+                
+                // Save to localStorage as backup
+                localStorage.setItem('salonData', JSON.stringify({ services, categories }));
+            } else {
+                throw new Error(result.error || 'Invalid data format received from server');
+            }
         } else {
             // If fetch fails, try localStorage
             const localData = localStorage.getItem('salonData');
@@ -100,15 +107,24 @@ async function loadData() {
             }
         }
         
-        // Save to localStorage as backup
-        localStorage.setItem('salonData', JSON.stringify({ services, categories }));
-        
         renderServices();
         renderCategories();
         updateCategorySelects();
     } catch (error) {
         console.error('Error loading data:', error);
-        showMessage('Error loading data', false);
+        showErrorMessage('Error loading data from server. Using local data if available.');
+        
+        // Try localStorage as fallback
+        const localData = localStorage.getItem('salonData');
+        if (localData) {
+            const jsonData = JSON.parse(localData);
+            services = Array.isArray(jsonData.services) ? jsonData.services : [];
+            categories = Array.isArray(jsonData.categories) ? jsonData.categories : [];
+            
+            renderServices();
+            renderCategories();
+            updateCategorySelects();
+        }
     }
 }
 
@@ -124,25 +140,31 @@ async function saveData() {
             }
         };
 
-        // Save to localStorage
+        // Save to localStorage as backup
         localStorage.setItem('salonData', JSON.stringify(dataToSave));
 
-        // Save to data.json using fetch with POST method
-        const response = await fetch('data.json', {
+        // Save to MongoDB using our Netlify function
+        const response = await fetch(`${API_URL}/saveData`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(dataToSave, null, 2)
+            body: JSON.stringify(dataToSave)
         });
         
         if (!response.ok) {
             throw new Error('Failed to save to server');
         }
         
+        const result = await response.json();
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to save data');
+        }
+        
         return true;
     } catch (error) {
         console.error('Error saving data:', error);
+        showErrorMessage('Failed to save data to server. Changes are only saved locally.');
         // Even if server save fails, data is in localStorage
         return true;
     }
