@@ -213,19 +213,32 @@ function renderServices() {
 function renderCategories() {
     if (!categoriesList) return;
     
-    categoriesList.innerHTML = categories.map(category => `
-        <div class="category-item">
+    categoriesList.innerHTML = '';
+    
+    // Filter out null or empty categories
+    categories = categories.filter(category => category && category.trim() !== '');
+    
+    categories.forEach((category, index) => {
+        const categoryItem = document.createElement('div');
+        categoryItem.className = 'category-item';
+        
+        // Count services in this category
+        const serviceCount = services.filter(service => service.category === category).length;
+        
+        categoryItem.innerHTML = `
             <div class="category-info">
-                <div class="category-name">${category}</div>
-                <div class="category-count">${services.filter(s => s.category === category).length} services</div>
+                <span class="category-name">${category}</span>
+                <span class="service-count">${serviceCount} services</span>
             </div>
             <div class="category-actions">
-                <button class="action-btn delete" onclick="deleteCategory('${category}')">
+                <button class="delete-btn" onclick="deleteCategory('${category}')">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
-        </div>
-    `).join('');
+        `;
+        
+        categoriesList.appendChild(categoryItem);
+    });
 }
 
 // Update category select elements
@@ -317,21 +330,28 @@ async function deleteService(serviceName) {
 
 // Delete category
 async function deleteCategory(categoryName) {
-    if (confirm('Are you sure you want to delete this category?')) {
-        const index = categories.indexOf(categoryName);
-        if (index !== -1) {
-            categories.splice(index, 1);
-            // Remove category from all services
-            services.forEach(service => {
-                if (service.category === categoryName) {
-                    service.category = '';
-                }
-            });
-            await saveData();
-            renderCategories();
-            updateCategorySelects();
-            showNotification('Category deleted successfully!');
+    if (!confirm(`Are you sure you want to delete the category "${categoryName}"?`)) {
+        return;
+    }
+    
+    // Remove category from list
+    categories = categories.filter(cat => cat !== categoryName);
+    
+    // Update services that used this category
+    services = services.map(service => {
+        if (service.category === categoryName) {
+            return { ...service, category: '' };
         }
+        return service;
+    });
+    
+    // Save changes
+    const success = await saveData();
+    if (success) {
+        showNotification('Category deleted successfully');
+        renderCategories();
+        renderServices();
+        updateCategorySelects();
     }
 }
 
@@ -412,30 +432,36 @@ function editService(serviceName) {
     openServiceModal(serviceName);
 }
 
-// Handle category form submission
-async function handleCategorySubmit(e) {
-    e.preventDefault();
+// Handle category submission
+async function handleCategorySubmit(event) {
+    event.preventDefault();
     
-    const formData = new FormData(categoryForm);
-    const categoryName = formData.get('category-name').trim();
+    const categoryNameInput = document.getElementById('category-name');
+    const categoryName = categoryNameInput.value.trim();
     
     if (!categoryName) {
         showNotification('Please enter a category name', false);
         return;
     }
     
-    if (!categories.includes(categoryName)) {
-        categories.push(categoryName);
-        await saveData();
-        renderCategories();
-        updateCategorySelects();
-        showNotification('Category added successfully!');
-    } else {
-        showNotification('Category already exists!', false);
+    // Check if category already exists
+    if (categories.includes(categoryName)) {
+        showNotification('This category already exists', false);
+        return;
     }
     
-    categoryModal.style.display = 'none';
-    categoryForm.reset();
+    // Add new category
+    categories.push(categoryName);
+    
+    // Save to Firebase
+    const success = await saveData();
+    if (success) {
+        showNotification('Category added successfully');
+        categoryNameInput.value = '';
+        categoryModal.style.display = 'none';
+        renderCategories();
+        updateCategorySelects();
+    }
 }
 
 // Reorganize services to include automatic spacers between categories

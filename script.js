@@ -25,27 +25,25 @@ async function fetchServices() {
     try {
         console.log('Fetching services from Firebase...');
         const API_URL = window.location.hostname === 'localhost' 
-          ? 'http://localhost:8888/.netlify/functions' 
-          : '/.netlify/functions';
-          
+            ? 'http://localhost:8888/.netlify/functions' 
+            : '/.netlify/functions';
+            
         const response = await fetch(`${API_URL}/getData`);
         console.log('Response status:', response.status);
         
         if (!response.ok) {
-            throw new Error(`Failed to fetch services: ${response.status} ${response.statusText}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const result = await response.json();
         console.log('Fetched data:', result);
         
-        if (result.success && result.data) {
-            // Make sure we're returning an array of services
-            const services = Array.isArray(result.data.services) ? result.data.services : [];
-            console.log('Services to render:', services);
-            return services;
+        if (!result.success) {
+            throw new Error('Failed to fetch data');
         }
-        console.log('No services found in data');
-        return [];
+        
+        // Return services array or empty array if no services
+        return (result.data && Array.isArray(result.data.services)) ? result.data.services : [];
     } catch (error) {
         console.error('Error fetching services:', error);
         return [];
@@ -61,59 +59,62 @@ async function renderServices() {
         return;
     }
     
-    servicesSection.innerHTML = '';
-    
-    const services = await fetchServices();
-    console.log('Services to render:', services);
-    
-    if (!services || services.length === 0) {
-        console.log('No services to render');
-        servicesSection.innerHTML = '<p class="no-services">No services available</p>';
-        return;
-    }
-    
-    let currentCategory = null;
-    
-    services.forEach(item => {
-        console.log('Processing service:', item);
+    try {
+        const services = await fetchServices();
+        console.log('Services to render:', services);
         
-        if (item.spacer) {
-            const spacer = document.createElement('div');
-            spacer.className = 'service-spacer';
-            servicesSection.appendChild(spacer);
-            currentCategory = null;
+        if (!services || services.length === 0) {
+            console.log('No services to display');
+            servicesSection.innerHTML = '<p class="no-services">No services available</p>';
             return;
         }
         
-        // Check if item has a category and it's different from current
-        if (item.category && item.category !== currentCategory) {
-            currentCategory = item.category;
-            
-            // Create category header
+        // Clear the services section
+        servicesSection.innerHTML = '';
+        
+        // Group services by category
+        const servicesByCategory = {};
+        services.forEach(service => {
+            const category = service.category || 'Other Services';
+            if (!servicesByCategory[category]) {
+                servicesByCategory[category] = [];
+            }
+            servicesByCategory[category].push(service);
+        });
+        
+        // Render services by category
+        Object.keys(servicesByCategory).sort().forEach(category => {
+            // Add category header
             const categoryHeader = document.createElement('div');
             categoryHeader.className = 'category-header';
-            categoryHeader.textContent = currentCategory;
+            categoryHeader.textContent = category;
             servicesSection.appendChild(categoryHeader);
-        }
+            
+            // Add services in this category
+            servicesByCategory[category].forEach(service => {
+                const serviceItem = document.createElement('div');
+                serviceItem.className = 'service-item';
+                
+                // Format price based on price type
+                let price = service.price || '';
+                if (service.priceType === 'perNail') {
+                    price = `${price} /nail`;
+                }
+                
+                serviceItem.innerHTML = `
+                    <span class="service-name">${service.name}</span>
+                    <span class="service-price">${price}</span>
+                `;
+                
+                servicesSection.appendChild(serviceItem);
+            });
+        });
         
-        const serviceItem = document.createElement('div');
-        serviceItem.className = 'service-item';
-        
-        // Format price based on price type
-        let price = item.price || '';
-        if (item.priceType === 'perNail') {
-            price = `${price} /nail`;
-        }
-        
-        serviceItem.innerHTML = `
-            <span class="service-name">${item.name}</span>
-            <span class="service-price">${price}</span>
-        `;
-        
-        servicesSection.appendChild(serviceItem);
-    });
-    
-    console.log('Services rendered successfully');
+        console.log('Services rendered successfully');
+    } catch (error) {
+        console.error('Error rendering services:', error);
+        servicesSection.innerHTML = '<p class="error">Error loading services. Please try again later.</p>';
+    }
 }
 
 // Function to apply theme
@@ -163,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', toggleDarkMode);
     }
-
+    
     // Load and display services
     renderServices();
 });

@@ -17,16 +17,54 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
+async function saveData(data) {
+    try {
+        console.log('Saving data to Firebase:', data);
+        
+        // Validate data structure
+        if (!data || typeof data !== 'object') {
+            throw new Error('Invalid data format');
+        }
+        
+        // Ensure services and categories are arrays
+        if (!Array.isArray(data.services)) {
+            console.log('Services is not an array, converting to empty array');
+            data.services = [];
+        }
+        
+        if (!Array.isArray(data.categories)) {
+            console.log('Categories is not an array, converting to empty array');
+            data.categories = [];
+        }
+        
+        // Filter out invalid services and categories
+        data.services = data.services.filter(service => service && typeof service === 'object' && service.name);
+        data.categories = data.categories.filter(category => category && typeof category === 'string' && category.trim() !== '');
+        
+        // Save to Firebase
+        const dataRef = ref(database, 'data');
+        await set(dataRef, {
+            services: data.services,
+            categories: data.categories,
+            credentials: data.credentials || { username: 'admin', password: 'admin' }
+        });
+        
+        console.log('Data saved successfully');
+        return true;
+    } catch (error) {
+        console.error('Error saving data:', error);
+        throw error;
+    }
+}
+
 exports.handler = async function(event, context) {
-    // Set CORS headers for all responses
     const headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Content-Type": "application/json"
     };
-
-    // Handle OPTIONS request for CORS
+    
+    // Handle preflight request
     if (event.httpMethod === 'OPTIONS') {
         return {
             statusCode: 200,
@@ -34,58 +72,51 @@ exports.handler = async function(event, context) {
             body: ''
         };
     }
-
-    // Only allow POST requests
+    
     if (event.httpMethod !== 'POST') {
         return {
             statusCode: 405,
             headers,
-            body: JSON.stringify({ error: 'Method not allowed' })
+            body: JSON.stringify({
+                success: false,
+                error: 'Method not allowed'
+            })
         };
     }
-
+    
     try {
-        console.log('Received data to save');
-        const data = JSON.parse(event.body);
-        console.log('Parsed data:', JSON.stringify(data).substring(0, 100) + '...');
-        
-        // Validate data structure
-        if (!data || typeof data !== 'object') {
-            throw new Error('Invalid data format');
-        }
-
-        // Ensure services and categories are arrays
-        if (!Array.isArray(data.services)) {
-            console.log('Services is not an array, converting to empty array');
-            data.services = [];
-        }
-        if (!Array.isArray(data.categories)) {
-            console.log('Categories is not an array, converting to empty array');
-            data.categories = [];
+        let data;
+        try {
+            data = JSON.parse(event.body);
+        } catch (e) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Invalid JSON in request body'
+                })
+            };
         }
         
-        console.log('Saving data to Firebase...');
-        // Save data to Firebase
-        const dataRef = ref(database, 'data');
-        await set(dataRef, data);
-        console.log('Data saved successfully');
+        await saveData(data);
         
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 success: true,
-                message: 'Data saved successfully' 
+                message: 'Data saved successfully'
             })
         };
     } catch (error) {
-        console.error('Firebase error:', error);
+        console.error('Error in handler:', error);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 success: false,
-                error: 'Failed to save data to database: ' + error.message
+                error: 'Internal server error'
             })
         };
     }
