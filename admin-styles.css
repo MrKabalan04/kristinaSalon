@@ -501,31 +501,69 @@ body {
 }
 
 .action-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
+    padding: 8px;
     border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border-radius: 4px;
     cursor: pointer;
-    transition: all var(--transition-speed);
-    background-color: var(--highlight);
-    color: var(--text-color);
+    background: none;
+    color: #fff;
+    transition: all 0.3s ease;
 }
 
 .action-btn:hover {
     transform: scale(1.1);
 }
 
-.action-btn.edit:hover {
-    background-color: var(--accent-color);
-    color: white;
+.action-btn.edit {
+    color: #4CAF50;
 }
 
-.action-btn.delete:hover {
-    background-color: var(--danger-color);
-    color: white;
+.action-btn.delete-btn {
+    color: #f44336;
+}
+
+.action-btn.edit:hover {
+    background-color: rgba(76, 175, 80, 0.1);
+}
+
+.action-btn.delete-btn:hover {
+    background-color: rgba(244, 67, 54, 0.1);
+}
+
+.category-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    margin: 10px 0;
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.category-item:hover {
+    background-color: #333;
+}
+
+.category-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.category-name {
+    font-size: 1.1em;
+    color: #fff;
+}
+
+.service-count {
+    color: #888;
+    font-size: 0.9em;
+}
+
+.category-actions {
+    display: flex;
+    gap: 10px;
 }
 
 /* Modals */

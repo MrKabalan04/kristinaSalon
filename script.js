@@ -24,26 +24,19 @@ const database = firebase.database();
 async function fetchServices() {
     try {
         console.log('Fetching services from Firebase...');
-        const API_URL = window.location.hostname === 'localhost' 
-            ? 'http://localhost:8888/.netlify/functions' 
-            : '/.netlify/functions';
-            
-        const response = await fetch(`${API_URL}/getData`);
-        console.log('Response status:', response.status);
+        const dataRef = database.ref('data');
+        const snapshot = await dataRef.get();
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        if (!snapshot.exists()) {
+            console.log('No data in Firebase');
+            return [];
         }
         
-        const result = await response.json();
-        console.log('Fetched data:', result);
-        
-        if (!result.success) {
-            throw new Error('Failed to fetch data');
-        }
+        const data = snapshot.val();
+        console.log('Fetched data:', data);
         
         // Return services array or empty array if no services
-        return (result.data && Array.isArray(result.data.services)) ? result.data.services : [];
+        return (data && Array.isArray(data.services)) ? data.services : [];
     } catch (error) {
         console.error('Error fetching services:', error);
         return [];

@@ -231,7 +231,7 @@ function renderCategories() {
                 <span class="service-count">${serviceCount} services</span>
             </div>
             <div class="category-actions">
-                <button class="delete-btn" onclick="deleteCategory('${category}')">
+                <button class="action-btn delete-btn" onclick="deleteCategory('${category}')">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -243,15 +243,18 @@ function renderCategories() {
 
 // Update category select elements
 function updateCategorySelects() {
-    const categorySelect = document.getElementById('service-category');
-    if (!categorySelect) return;
-    
-    categorySelect.innerHTML = `
-        <option value="">Select Category</option>
-        ${categories.map(category => `
-            <option value="${category}">${category}</option>
-        `).join('')}
-    `;
+    const categorySelects = document.querySelectorAll('.category-select');
+    categorySelects.forEach(select => {
+        const currentValue = select.value;
+        select.innerHTML = `
+            <option value="">No Category</option>
+            ${categories.map(category => `
+                <option value="${category}" ${currentValue === category ? 'selected' : ''}>
+                    ${category}
+                </option>
+            `).join('')}
+        `;
+    });
 }
 
 // Handle login
@@ -399,32 +402,41 @@ function openCategoryModal() {
     categoryModal.style.display = 'flex';
 }
 
-// Handle service form submit
-async function handleServiceSubmit(e) {
-    e.preventDefault();
+// Handle service submission
+async function handleServiceSubmit(event) {
+    event.preventDefault();
     
     const formData = new FormData(serviceForm);
     const serviceData = {
-        name: formData.get('service-name'),
-        category: formData.get('service-category'),
-        price: formData.get('service-price'),
-        priceType: currentPriceType
+        name: formData.get('service-name').trim(),
+        price: formData.get('service-price').trim(),
+        priceType: currentPriceType,
+        category: formData.get('service-category').trim() || '' // Make category optional
     };
-
-    if (currentEditIndex !== null) {
-        services[currentEditIndex] = serviceData;
-        showNotification('Service updated successfully!');
-    } else {
-        services.push(serviceData);
-        showNotification('Service added successfully!');
+    
+    // Validate required fields
+    if (!serviceData.name || !serviceData.price) {
+        showNotification('Name and price are required', false);
+        return;
     }
-
-    await saveData();
-    renderServices();
-    updateCategorySelects();
-    serviceModal.style.display = 'none';
-    serviceForm.reset();
-    currentEditIndex = null;
+    
+    if (currentEditIndex !== null) {
+        // Update existing service
+        services[currentEditIndex] = serviceData;
+    } else {
+        // Add new service
+        services.push(serviceData);
+    }
+    
+    // Save to Firebase
+    const success = await saveData();
+    if (success) {
+        showNotification(currentEditIndex !== null ? 'Service updated successfully' : 'Service added successfully');
+        serviceModal.style.display = 'none';
+        serviceForm.reset();
+        currentEditIndex = null;
+        renderServices();
+    }
 }
 
 // Edit service
