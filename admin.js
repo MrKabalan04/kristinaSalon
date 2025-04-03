@@ -93,14 +93,14 @@ async function initializeApp() {
         }
     } catch (error) {
         console.error('Error initializing app:', error);
-        showMessage('Error initializing application', false);
+        showNotification('Error initializing application', false);
     }
 }
 
-// Load data from server
+// Load data from Firebase
 async function loadData() {
     try {
-        // Try to fetch from MongoDB using our Netlify function
+        // Try to fetch from Firebase using our Netlify function
         const response = await fetch(`${API_URL}/getData`);
         if (response.ok) {
             const result = await response.json();
@@ -128,7 +128,7 @@ async function loadData() {
         updateCategorySelects();
     } catch (error) {
         console.error('Error loading data:', error);
-        showErrorMessage('Error loading data from server. Using local data if available.');
+        showNotification('Error loading data from server. Using local data if available.', false);
         
         // Try localStorage as fallback
         const localData = localStorage.getItem('salonData');
@@ -144,7 +144,7 @@ async function loadData() {
     }
 }
 
-// Save data to server
+// Save data to Firebase
 async function saveData() {
     try {
         const dataToSave = {
