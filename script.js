@@ -4,19 +4,38 @@ if (localStorage.getItem('darkMode') === null) {
     localStorage.setItem('darkMode', 'true');
 }
 
-// Function to fetch services from data.json
+// Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyBimsxijDPv8t_pEtoFPpvCMxIopvQ3_y8",
+    authDomain: "kristinanails.firebaseapp.com",
+    projectId: "kristinanails",
+    storageBucket: "kristinanails.firebasestorage.app",
+    messagingSenderId: "1031548052588",
+    appId: "1:1031548052588:web:730d1eb220ba5401b3a449",
+    measurementId: "G-3SN5X0BLZM",
+    databaseURL: "https://kristinanails-default-rtdb.firebaseio.com"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// Function to fetch services from Firebase
 async function fetchServices() {
     try {
         const API_URL = window.location.hostname === 'localhost' 
           ? 'http://localhost:8888/.netlify/functions' 
           : '/.netlify/functions';
           
-        const response = await fetch(`${API_URL}/data`);
+        const response = await fetch(`${API_URL}/getData`);
         if (!response.ok) {
             throw new Error('Failed to fetch services');
         }
-        const data = await response.json();
-        return data.services;
+        const result = await response.json();
+        if (result.success && result.data) {
+            return result.data.services || [];
+        }
+        return [];
     } catch (error) {
         console.error('Error fetching services:', error);
         return [];
@@ -127,35 +146,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Load and display services
-    fetch('data.json')
-        .then(response => response.json())
-        .then(data => {
+    fetchServices()
+        .then(services => {
             const servicesSection = document.querySelector('.services-section');
             
-            data.services.forEach(service => {
-                if (service.spacer) {
-                    // Add a spacer div with margin
-                    const spacer = document.createElement('div');
-                    spacer.style.marginBottom = '20px';
-                    servicesSection.appendChild(spacer);
-                    return;
-                }
-
-                const serviceItem = document.createElement('div');
-                serviceItem.className = 'service-item';
-                
-                const serviceName = document.createElement('div');
-                serviceName.className = 'service-name';
-                serviceName.textContent = service.name;
-                
-                const servicePrice = document.createElement('div');
-                servicePrice.className = 'service-price';
-                servicePrice.textContent = service.price;
-                
-                serviceItem.appendChild(serviceName);
-                serviceItem.appendChild(servicePrice);
-                servicesSection.appendChild(serviceItem);
-            });
+            if (services.length === 0) {
+                servicesSection.innerHTML = '<p class="no-services">No services available</p>';
+            } else {
+                renderServices(services);
+            }
         })
         .catch(error => console.error('Error loading services:', error));
 });
