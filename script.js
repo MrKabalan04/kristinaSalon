@@ -77,18 +77,45 @@ async function renderServices() {
         
         // Render services by category
         Object.keys(servicesByCategory).sort().forEach(category => {
-            // Add category header
+            if (category !== 'Other Services') {
+                // Add category header
+                const categoryHeader = document.createElement('div');
+                categoryHeader.className = 'category-header';
+                categoryHeader.textContent = category;
+                servicesSection.appendChild(categoryHeader);
+                
+                // Add services in this category
+                servicesByCategory[category].forEach(service => {
+                    const serviceItem = document.createElement('div');
+                    serviceItem.className = 'service-item';
+                    
+                    // Format price based on price type
+                    let price = service.price || '';
+                    if (service.priceType === 'perNail') {
+                        price = `${price} /nail`;
+                    }
+                    
+                    serviceItem.innerHTML = `
+                        <span class="service-name">${service.name}</span>
+                        <span class="service-price">${price}</span>
+                    `;
+                    
+                    servicesSection.appendChild(serviceItem);
+                });
+            }
+        });
+        
+        // Add uncategorized services last
+        if (servicesByCategory['Other Services'] && servicesByCategory['Other Services'].length > 0) {
             const categoryHeader = document.createElement('div');
             categoryHeader.className = 'category-header';
-            categoryHeader.textContent = category;
+            categoryHeader.textContent = 'Other Services';
             servicesSection.appendChild(categoryHeader);
             
-            // Add services in this category
-            servicesByCategory[category].forEach(service => {
+            servicesByCategory['Other Services'].forEach(service => {
                 const serviceItem = document.createElement('div');
                 serviceItem.className = 'service-item';
                 
-                // Format price based on price type
                 let price = service.price || '';
                 if (service.priceType === 'perNail') {
                     price = `${price} /nail`;
@@ -101,7 +128,7 @@ async function renderServices() {
                 
                 servicesSection.appendChild(serviceItem);
             });
-        });
+        }
         
         console.log('Services rendered successfully');
     } catch (error) {

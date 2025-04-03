@@ -201,7 +201,7 @@ function renderServices() {
                 <button class="action-btn edit" onclick="editService('${service.name}')">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button class="action-btn delete" onclick="deleteService('${service.name}')">
+                <button class="action-btn delete-btn" onclick="deleteService('${service.name}')">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -231,6 +231,9 @@ function renderCategories() {
                 <span class="service-count">${serviceCount} services</span>
             </div>
             <div class="category-actions">
+                <button class="action-btn edit" onclick="editCategory('${category}')">
+                    <i class="fas fa-edit"></i>
+                </button>
                 <button class="action-btn delete-btn" onclick="deleteCategory('${category}')">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -241,7 +244,39 @@ function renderCategories() {
     });
 }
 
-// Update category select elements
+// Edit category
+function editCategory(categoryName) {
+    const oldName = categoryName;
+    const newName = prompt('Enter new category name:', categoryName);
+    
+    if (newName && newName.trim() !== '' && newName !== oldName) {
+        // Update category name in categories array
+        const index = categories.indexOf(oldName);
+        if (index !== -1) {
+            categories[index] = newName;
+            
+            // Update category name in all services
+            services = services.map(service => {
+                if (service.category === oldName) {
+                    return { ...service, category: newName };
+                }
+                return service;
+            });
+            
+            // Save changes
+            saveData().then(success => {
+                if (success) {
+                    showNotification('Category updated successfully');
+                    renderCategories();
+                    renderServices();
+                    updateCategorySelects();
+                }
+            });
+        }
+    }
+}
+
+// Update category selects
 function updateCategorySelects() {
     const categorySelects = document.querySelectorAll('.category-select');
     categorySelects.forEach(select => {

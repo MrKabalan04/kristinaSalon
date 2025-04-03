@@ -80,38 +80,40 @@
         </div>
     </div>
 
-    <!-- Add/Edit Service Modal -->
-    <div class="modal" id="service-modal">
+    <!-- Service Modal -->
+    <div id="service-modal" class="modal">
         <div class="modal-content">
-            <span class="close-modal">&times;</span>
+            <button class="close-modal">&times;</button>
             <h2 class="modal-title">Add Service</h2>
             <form id="service-form">
                 <div class="form-group">
                     <label for="service-name">Service Name</label>
-                    <input type="text" id="service-name" required>
+                    <input type="text" id="service-name" name="service-name" required>
                 </div>
                 <div class="form-group">
                     <label for="service-category">Category</label>
-                    <select id="service-category" required></select>
+                    <select id="service-category" name="service-category" class="category-select">
+                        <option value="">No Category</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="service-price">Price</label>
-                    <input type="text" id="service-price" required placeholder="e.g. $50, $5/nail, half price">
+                    <input type="text" id="service-price" name="service-price" required>
                 </div>
                 <button type="submit" class="save-btn">Save Service</button>
             </form>
         </div>
     </div>
 
-    <!-- Add Category Modal -->
-    <div class="modal" id="category-modal">
+    <!-- Category Modal -->
+    <div id="category-modal" class="modal">
         <div class="modal-content">
-            <span class="close-modal">&times;</span>
+            <button class="close-modal">&times;</button>
             <h2 class="modal-title">Add Category</h2>
             <form id="category-form">
                 <div class="form-group">
                     <label for="category-name">Category Name</label>
-                    <input type="text" id="category-name" required>
+                    <input type="text" id="category-name" name="category-name" required>
                 </div>
                 <button type="submit" class="save-btn">Save Category</button>
             </form>
