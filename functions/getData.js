@@ -1,52 +1,24 @@
 const { MongoClient } = require('mongodb');
-require('dotenv').config();
 
 // Connection reuse - create a cached connection
 let cachedDb = null;
 
 async function connectToDatabase() {
   if (cachedDb) {
-    try {
-      // For MongoDB driver v5+, check connection differently
-      await cachedDb.client.db().admin().ping();
-      console.log("Using cached database connection");
-      return cachedDb;
-    } catch (e) {
-      console.log("Cached connection is no longer valid, creating a new one");
-      cachedDb = null;
-    }
+    return cachedDb;
   }
   
-  console.log("Creating new database connection");
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     throw new Error('MONGODB_URI environment variable not set');
   }
   
-  try {
-    console.log("Connecting to MongoDB...");
-    
-    // Create a new MongoClient with options compatible with v5
-    const client = new MongoClient(uri, {
-      serverSelectionTimeoutMS: 10000, // 10 seconds
-      socketTimeoutMS: 45000 // 45 seconds
-    });
-    
-    // Connect to the MongoDB server
-    await client.connect();
-    console.log("Connected to MongoDB successfully");
-    
-    // Get reference to the database
-    const db = client.db('kristina-nails');
-    
-    // Cache the database connection
-    cachedDb = { client, db };
-    return cachedDb;
-  } catch (error) {
-    console.error("Error connecting to MongoDB:", error.message);
-    console.error("Stack trace:", error.stack);
-    throw error;
-  }
+  const client = new MongoClient(uri);
+  await client.connect();
+  const db = client.db('kristina-nails');
+  
+  cachedDb = { client, db };
+  return cachedDb;
 }
 
 exports.handler = async function(event, context) {

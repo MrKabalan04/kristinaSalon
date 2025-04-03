@@ -1,5 +1,7 @@
 const { MongoClient } = require('mongodb');
-require('dotenv').config();
+
+// Remove dotenv since Netlify handles env vars
+// require('dotenv').config();
 
 exports.handler = async function(event, context) {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -15,10 +17,7 @@ exports.handler = async function(event, context) {
   let client = null;
   try {
     console.log("Creating MongoDB client");
-    client = new MongoClient(uri, {
-      serverSelectionTimeoutMS: 10000, // 10 seconds
-      socketTimeoutMS: 45000, // 45 seconds
-    });
+    client = new MongoClient(uri);
     
     console.log("Connecting to MongoDB...");
     await client.connect();
@@ -39,8 +38,6 @@ exports.handler = async function(event, context) {
         success: true,
         message: "MongoDB connection successful",
         uri_prefix: sanitizedUri,
-        env_vars: Object.keys(process.env),
-        node_version: process.version,
         test_query: testResult ? "Document found" : "No document found",
         timestamp: new Date().toISOString(),
         function_path: __filename,
