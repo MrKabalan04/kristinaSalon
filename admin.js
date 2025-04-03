@@ -30,9 +30,22 @@ const categoryModal = document.getElementById('category-modal');
 const serviceForm = document.getElementById('service-form');
 const categoryForm = document.getElementById('category-form');
 const successMessage = document.querySelector('.success-message');
-const notificationContainer = document.createElement('div');
-notificationContainer.className = 'notification-container';
-document.body.appendChild(notificationContainer);
+const notificationModal = document.createElement('div');
+notificationModal.className = 'notification-modal';
+notificationModal.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    background: #4CAF50;
+    color: white;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 1000;
+    display: none;
+    transition: opacity 0.3s ease;
+`;
+document.body.appendChild(notificationModal);
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
@@ -291,43 +304,33 @@ function handleNavigation(e) {
 // Delete service
 async function deleteService(serviceName) {
     if (confirm('Are you sure you want to delete this service?')) {
-        try {
-            const index = services.findIndex(s => s.name === serviceName);
-            if (index !== -1) {
-                services.splice(index, 1);
-                await saveData();
-                renderServices();
-                updateCategorySelects();
-                showNotification('Service deleted successfully!');
-            }
-        } catch (error) {
-            console.error('Error deleting service:', error);
-            showNotification('Failed to delete service. Please try again.', false);
+        const index = services.findIndex(s => s.name === serviceName);
+        if (index !== -1) {
+            services.splice(index, 1);
+            await saveData();
+            renderServices();
+            updateCategorySelects();
+            showNotification('Service deleted successfully!');
         }
     }
 }
 
 // Delete category
 async function deleteCategory(categoryName) {
-    if (confirm('Are you sure you want to delete this category? This will also remove the category from all services.')) {
-        try {
-            const index = categories.indexOf(categoryName);
-            if (index !== -1) {
-                categories.splice(index, 1);
-                // Remove category from all services
-                services.forEach(service => {
-                    if (service.category === categoryName) {
-                        service.category = '';
-                    }
-                });
-                await saveData();
-                renderCategories();
-                updateCategorySelects();
-                showNotification('Category deleted successfully!');
-            }
-        } catch (error) {
-            console.error('Error deleting category:', error);
-            showNotification('Failed to delete category. Please try again.', false);
+    if (confirm('Are you sure you want to delete this category?')) {
+        const index = categories.indexOf(categoryName);
+        if (index !== -1) {
+            categories.splice(index, 1);
+            // Remove category from all services
+            services.forEach(service => {
+                if (service.category === categoryName) {
+                    service.category = '';
+                }
+            });
+            await saveData();
+            renderCategories();
+            updateCategorySelects();
+            showNotification('Category deleted successfully!');
         }
     }
 }
@@ -385,30 +388,23 @@ async function handleServiceSubmit(e) {
         name: formData.get('service-name'),
         category: formData.get('service-category'),
         price: formData.get('service-price'),
-        priceType: formData.get('price-type')
+        priceType: currentPriceType
     };
-    
-    try {
-        if (currentEditIndex !== null) {
-            // Update existing service
-            services[currentEditIndex] = serviceData;
-            showNotification('Service updated successfully!');
-        } else {
-            // Add new service
-            services.push(serviceData);
-            showNotification('Service added successfully!');
-        }
-        
-        await saveData();
-        renderServices();
-        updateCategorySelects();
-        serviceModal.style.display = 'none';
-        serviceForm.reset();
-        currentEditIndex = null;
-    } catch (error) {
-        console.error('Error saving service:', error);
-        showNotification('Failed to save service. Please try again.', false);
+
+    if (currentEditIndex !== null) {
+        services[currentEditIndex] = serviceData;
+        showNotification('Service updated successfully!');
+    } else {
+        services.push(serviceData);
+        showNotification('Service added successfully!');
     }
+
+    await saveData();
+    renderServices();
+    updateCategorySelects();
+    serviceModal.style.display = 'none';
+    serviceForm.reset();
+    currentEditIndex = null;
 }
 
 // Edit service
@@ -423,22 +419,18 @@ async function handleCategorySubmit(e) {
     const formData = new FormData(categoryForm);
     const categoryName = formData.get('category-name');
     
-    try {
-        if (!categories.includes(categoryName)) {
-            categories.push(categoryName);
-            await saveData();
-            renderCategories();
-            updateCategorySelects();
-            categoryModal.style.display = 'none';
-            categoryForm.reset();
-            showNotification('Category added successfully!');
-        } else {
-            showNotification('Category already exists!', false);
-        }
-    } catch (error) {
-        console.error('Error saving category:', error);
-        showNotification('Failed to save category. Please try again.', false);
+    if (!categories.includes(categoryName)) {
+        categories.push(categoryName);
+        await saveData();
+        renderCategories();
+        updateCategorySelects();
+        showNotification('Category added successfully!');
+    } else {
+        showNotification('Category already exists!', false);
     }
+    
+    categoryModal.style.display = 'none';
+    categoryForm.reset();
 }
 
 // Reorganize services to include automatic spacers between categories
@@ -554,18 +546,15 @@ function applyTheme() {
 }
 
 function showNotification(message, isSuccess = true) {
-    const notification = document.createElement('div');
-    notification.className = `notification ${isSuccess ? 'success' : 'error'}`;
-    notification.textContent = message;
+    notificationModal.textContent = message;
+    notificationModal.style.background = isSuccess ? '#4CAF50' : '#f44336';
+    notificationModal.style.display = 'block';
+    notificationModal.style.opacity = '1';
     
-    notificationContainer.appendChild(notification);
-    
-    // Add animation class
-    setTimeout(() => notification.classList.add('show'), 10);
-    
-    // Remove after 3 seconds
     setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
+        notificationModal.style.opacity = '0';
+        setTimeout(() => {
+            notificationModal.style.display = 'none';
+        }, 300);
+    }, 2000);
 } 
