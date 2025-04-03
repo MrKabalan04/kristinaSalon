@@ -1,6 +1,6 @@
 [build]
   publish = "."
-  functions = { node_bundler = "esbuild", node_bundler_options = { external = ["dotenv"] } }
+  functions = "functions"
 
 [functions]
   node_bundler = "esbuild"
