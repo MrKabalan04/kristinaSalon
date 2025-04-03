@@ -4,6 +4,7 @@ let categories = [];
 let currentService = null;
 let currentEditIndex = null;
 let currentPriceType = 'fixed';
+let isDarkMode = localStorage.getItem('darkMode') === 'true';
 let data = {}; // Store the complete data object
 let isReorganizing = false; // Flag to prevent multiple auto-saves during reorganization
 
@@ -51,6 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // Apply theme
+    applyTheme();
 });
 
 // Initialize application
@@ -80,32 +84,26 @@ async function initializeApp() {
 // Load data from server
 async function loadData() {
     try {
-        console.log('Attempting to load data from server...');
         // Try to fetch from MongoDB using our Netlify function
         const response = await fetch(`${API_URL}/getData`);
-        console.log('Server response:', response.status);
         if (response.ok) {
             const result = await response.json();
-            console.log('Server data:', result);
             if (result.success && result.data) {
                 services = Array.isArray(result.data.services) ? result.data.services : [];
                 categories = Array.isArray(result.data.categories) ? result.data.categories : [];
                 
                 // Save to localStorage as backup
                 localStorage.setItem('salonData', JSON.stringify({ services, categories }));
-                console.log('Data loaded successfully:', { services, categories });
             } else {
                 throw new Error(result.error || 'Invalid data format received from server');
             }
         } else {
-            console.log('Server request failed, trying localStorage...');
             // If fetch fails, try localStorage
             const localData = localStorage.getItem('salonData');
             if (localData) {
                 const jsonData = JSON.parse(localData);
                 services = Array.isArray(jsonData.services) ? jsonData.services : [];
                 categories = Array.isArray(jsonData.categories) ? jsonData.categories : [];
-                console.log('Loaded from localStorage:', { services, categories });
             }
         }
         
@@ -122,7 +120,6 @@ async function loadData() {
             const jsonData = JSON.parse(localData);
             services = Array.isArray(jsonData.services) ? jsonData.services : [];
             categories = Array.isArray(jsonData.categories) ? jsonData.categories : [];
-            console.log('Loaded from localStorage (after error):', { services, categories });
             
             renderServices();
             renderCategories();
@@ -515,5 +512,24 @@ function cleanupExistingData() {
     // Save if we made any changes
     if (dataChanged) {
         saveData(data);
+    }
+}
+
+// Toggle dark/light mode
+function toggleDarkMode() {
+    isDarkMode = !isDarkMode;
+    localStorage.setItem('darkMode', isDarkMode);
+    
+    applyTheme();
+}
+
+// Apply the current theme
+function applyTheme() {
+    if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+        document.body.classList.remove('light-mode');
+    } else {
+        document.body.classList.add('light-mode');
+        document.body.classList.remove('dark-mode');
     }
 } 
