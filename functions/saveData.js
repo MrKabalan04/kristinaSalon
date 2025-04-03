@@ -47,6 +47,19 @@ exports.handler = async function(event, context) {
     try {
         const data = JSON.parse(event.body);
         
+        // Validate data structure
+        if (!data || typeof data !== 'object') {
+            throw new Error('Invalid data format');
+        }
+
+        // Ensure services and categories are arrays
+        if (!Array.isArray(data.services)) {
+            data.services = [];
+        }
+        if (!Array.isArray(data.categories)) {
+            data.categories = [];
+        }
+        
         // Save data to Firebase
         const dataRef = ref(database, 'data');
         await set(dataRef, data);

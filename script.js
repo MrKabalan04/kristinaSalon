@@ -32,8 +32,13 @@ async function fetchServices() {
             throw new Error('Failed to fetch services');
         }
         const result = await response.json();
+        console.log('Fetched data:', result); // Debug log
+        
         if (result.success && result.data) {
-            return result.data.services || [];
+            // Make sure we're returning an array of services
+            const services = Array.isArray(result.data.services) ? result.data.services : [];
+            console.log('Services:', services); // Debug log
+            return services;
         }
         return [];
     } catch (error) {
@@ -46,12 +51,15 @@ async function fetchServices() {
 async function renderServices() {
     const servicesSection = document.querySelector('.services-section');
     if (!servicesSection) {
+        console.error('Services section not found');
         return;
     }
     
     servicesSection.innerHTML = '';
     
     const services = await fetchServices();
+    console.log('Rendering services:', services); // Debug log
+    
     if (!services || services.length === 0) {
         servicesSection.innerHTML = '<p class="no-services">No services available</p>';
         return;
@@ -64,7 +72,7 @@ async function renderServices() {
             const spacer = document.createElement('div');
             spacer.className = 'service-spacer';
             servicesSection.appendChild(spacer);
-            currentCategory = null; // Reset category after spacer
+            currentCategory = null;
             return;
         }
         

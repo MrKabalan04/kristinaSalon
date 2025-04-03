@@ -159,7 +159,7 @@ async function saveData() {
         // Save to localStorage as backup
         localStorage.setItem('salonData', JSON.stringify(dataToSave));
 
-        // Save to MongoDB using our Netlify function
+        // Save to Firebase using our Netlify function
         const response = await fetch(`${API_URL}/saveData`, {
             method: 'POST',
             headers: {
@@ -180,7 +180,7 @@ async function saveData() {
         return true;
     } catch (error) {
         console.error('Error saving data:', error);
-        showErrorMessage('Failed to save data to server. Changes are only saved locally.');
+        showNotification('Failed to save data to server. Changes are only saved locally.', false);
         // Even if server save fails, data is in localStorage
         return true;
     }
@@ -412,12 +412,17 @@ function editService(serviceName) {
     openServiceModal(serviceName);
 }
 
-// Handle category form submit
+// Handle category form submission
 async function handleCategorySubmit(e) {
     e.preventDefault();
     
     const formData = new FormData(categoryForm);
-    const categoryName = formData.get('category-name');
+    const categoryName = formData.get('category-name').trim();
+    
+    if (!categoryName) {
+        showNotification('Please enter a category name', false);
+        return;
+    }
     
     if (!categories.includes(categoryName)) {
         categories.push(categoryName);
