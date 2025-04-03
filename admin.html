@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Kristina Nails</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Dancing+Script:wght@400;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="admin-styles.css">
+</head>
+<body>
+    <!-- Login Container -->
+    <div class="login-container">
+        <h1 class="login-title">Admin Login</h1>
+        <form class="login-form">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit" class="login-button">Login</button>
+        </form>
+        <div class="error-message"></div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div class="admin-panel">
+        <div class="admin-sidebar">
+            <div class="admin-logo">
+                <span class="logo-text">Kristina</span>
+                <span class="logo-nails">NAILS</span>
+            </div>
+            <nav class="admin-nav">
+                <button class="nav-item active" data-view="services">
+                    <i class="fas fa-list"></i>
+                    Services
+                </button>
+                <button class="nav-item" data-view="categories">
+                    <i class="fas fa-tags"></i>
+                    Categories
+                </button>
+                <button class="nav-item" data-view="settings">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </button>
+            </nav>
+            <button class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </button>
+        </div>
+
+        <div class="admin-main">
+            <div class="admin-header">
+                <h1 class="admin-title">Services Management</h1>
+                <div class="admin-controls">
+                    <button class="admin-button add-service">
+                        <i class="fas fa-plus"></i>
+                        Add Service
+                    </button>
+                    <button class="admin-button add-category">
+                        <i class="fas fa-folder-plus"></i>
+                        Add Category
+                    </button>
+                </div>
+            </div>
+
+            <div class="admin-content">
+                <!-- Services View -->
+                <div class="view-section active" id="services-view">
+                    <div class="services-list"></div>
+                </div>
+
+                <!-- Categories View -->
+                <div class="view-section" id="categories-view">
+                    <div class="categories-list"></div>
+                </div>
+
+                <!-- Settings View -->
+                <div class="view-section" id="settings-view">
+                    <div class="settings-form">
+                        <h2>General Settings</h2>
+                        <div class="form-group">
+                            <label>Theme</label>
+                            <select id="theme-select">
+                                <option value="dark">Dark</option>
+                                <option value="light">Light</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Service Modal -->
+    <div class="modal" id="service-modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 class="modal-title">Add Service</h2>
+            <form id="service-form">
+                <div class="form-group">
+                    <label for="service-name">Service Name</label>
+                    <input type="text" id="service-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="service-category">Category</label>
+                    <select id="service-category" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="service-price">Price</label>
+                    <input type="text" id="service-price" required placeholder="e.g. $50, $5/nail, half price">
+                </div>
+                <button type="submit" class="save-btn">Save Service</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Category Modal -->
+    <div class="modal" id="category-modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 class="modal-title">Add Category</h2>
+            <form id="category-form">
+                <div class="form-group">
+                    <label for="category-name">Category Name</label>
+                    <input type="text" id="category-name" required>
+                </div>
+                <button type="submit" class="save-btn">Save Category</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Success Message -->
+    <div class="success-message"></div>
+
+    <script src="admin.js"></script>
+</body>
+</html> 

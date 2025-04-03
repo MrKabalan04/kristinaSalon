@@ -1,0 +1,11 @@
+{
+  "name": "salon-admin",
+  "version": "1.0.0",
+  "description": "Salon services admin panel",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "mongodb": "^5.7.0"
+  }
+}
