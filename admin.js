@@ -44,6 +44,13 @@ document.addEventListener('DOMContentLoaded', () => {
     logoutBtn?.addEventListener('click', handleLogout);
     serviceForm?.addEventListener('submit', handleServiceSubmit);
     categoryForm?.addEventListener('submit', handleCategorySubmit);
+    
+    // Add dark mode toggle listener
+    const darkModeToggle = document.querySelector('.theme-toggle');
+    if (darkModeToggle) {
+        darkModeToggle.addEventListener('click', toggleDarkMode);
+    }
+
     document.querySelectorAll('.close-modal').forEach(btn => {
         btn?.addEventListener('click', () => {
             const modal = btn.closest('.modal');
@@ -53,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Apply theme
+    // Apply theme on load
     applyTheme();
 });
 
@@ -526,17 +533,22 @@ function cleanupExistingData() {
 function toggleDarkMode() {
     isDarkMode = !isDarkMode;
     localStorage.setItem('darkMode', isDarkMode);
-    
     applyTheme();
+    
+    // Update the toggle button icon if it exists
+    const toggleIcon = document.querySelector('.theme-toggle i');
+    if (toggleIcon) {
+        toggleIcon.className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
+    }
 }
 
 // Apply the current theme
 function applyTheme() {
-    if (isDarkMode) {
-        document.body.classList.add('dark-mode');
-        document.body.classList.remove('light-mode');
-    } else {
-        document.body.classList.add('light-mode');
-        document.body.classList.remove('dark-mode');
+    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+    
+    // Update the toggle button icon if it exists
+    const toggleIcon = document.querySelector('.theme-toggle i');
+    if (toggleIcon) {
+        toggleIcon.className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
     }
 } 

@@ -17,6 +17,9 @@
     --sidebar-width: 280px;
     --header-height: 70px;
     --transition-speed: 0.3s;
+    --bg-color: #ffffff;
+    --error-color: #f44336;
+    --modal-bg: #ffffff;
 }
 
 /* Light Mode Variables */
@@ -38,9 +41,9 @@
 body {
     font-family: 'Poppins', sans-serif;
     margin: 0;
-    background-color: var(--primary-color);
+    background-color: var(--bg-color);
     color: var(--text-color);
-    transition: background-color var(--transition-speed), color var(--transition-speed);
+    transition: background-color 0.3s, color 0.3s;
 }
 
 /* Theme Toggle Button */
@@ -311,29 +314,35 @@ body {
 }
 
 .admin-controls {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: var(--bg-color);
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
-    gap: 12px;
-    align-items: center;
+    justify-content: flex-end;
+    gap: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .admin-button {
-    background-color: var(--accent-color);
+    background-color: var(--primary-color);
     color: white;
     border: none;
-    padding: 12px 20px;
-    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 1rem;
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: all var(--transition-speed);
+    gap: 0.5rem;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .admin-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(228, 167, 179, 0.3);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .admin-button:active {
@@ -543,7 +552,7 @@ body {
 }
 
 .modal-content {
-    background-color: var(--secondary-color);
+    background-color: var(--modal-bg);
     padding: 40px;
     border-radius: 20px;
     width: 100%;
@@ -885,21 +894,29 @@ textarea:focus {
 /* Dark mode preference detection */
 @media (prefers-color-scheme: dark) {
     body:not(.light-mode) {
-        --bg-primary: #000000;
-        --bg-secondary: #1a1a1a;
-        --text-primary: #ffffff;
-        --text-secondary: #cccccc;
-        --card-bg: #1a1a1a;
+        --bg-color: #000000;
+        --text-color: #ffffff;
+        --border-color: #333333;
+        --hover-color: #2a2a2a;
+        --primary-color: #64b5f6;
+        --success-color: #81c784;
+        --error-color: #e57373;
+        --modal-bg: #2a2a2a;
+        --card-bg: #2a2a2a;
         --highlight: rgba(255, 255, 255, 0.1);
     }
 }
 
 @media (prefers-color-scheme: light) {
     body:not(.dark-mode) {
-        --bg-primary: #f8f8f8;
-        --bg-secondary: #ffffff;
-        --text-primary: #333333;
-        --text-secondary: #666666;
+        --bg-color: #f8f8f8;
+        --text-color: #333333;
+        --border-color: #e0e0e0;
+        --hover-color: #f5f5f5;
+        --primary-color: #4a90e2;
+        --success-color: #4caf50;
+        --error-color: #f44336;
+        --modal-bg: #ffffff;
         --card-bg: #ffffff;
         --highlight: rgba(0, 0, 0, 0.05);
     }
@@ -932,8 +949,8 @@ textarea:focus {
 .form-group select {
     padding: 12px 16px;
     border: 1px solid var(--border-color);
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
+    background-color: var(--bg-color);
+    color: var(--text-color);
     border-radius: 4px;
     font-size: 16px;
     transition: border-color 0.3s, box-shadow 0.3s;
@@ -970,4 +987,55 @@ textarea:focus {
 .add-category[style*="display: flex"] {
     opacity: 1;
     visibility: visible;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s;
+    z-index: 1000;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+}
+
+/* Dark mode specific styles */
+[data-theme="dark"] .service-item,
+[data-theme="dark"] .category-item {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .modal-content {
+    background-color: var(--modal-bg);
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .nav-item {
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .nav-item.active {
+    background-color: var(--primary-color);
+    color: white;
 }
