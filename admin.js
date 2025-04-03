@@ -4,7 +4,6 @@ let categories = [];
 let currentService = null;
 let currentEditIndex = null;
 let currentPriceType = 'fixed';
-let isDarkMode = localStorage.getItem('darkMode') === 'true';
 let data = {}; // Store the complete data object
 let isReorganizing = false; // Flag to prevent multiple auto-saves during reorganization
 
@@ -44,13 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
     logoutBtn?.addEventListener('click', handleLogout);
     serviceForm?.addEventListener('submit', handleServiceSubmit);
     categoryForm?.addEventListener('submit', handleCategorySubmit);
-    
-    // Add dark mode toggle listener
-    const darkModeToggle = document.querySelector('.theme-toggle');
-    if (darkModeToggle) {
-        darkModeToggle.addEventListener('click', toggleDarkMode);
-    }
-
     document.querySelectorAll('.close-modal').forEach(btn => {
         btn?.addEventListener('click', () => {
             const modal = btn.closest('.modal');
@@ -59,9 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-
-    // Apply theme on load
-    applyTheme();
 });
 
 // Initialize application
@@ -526,29 +515,5 @@ function cleanupExistingData() {
     // Save if we made any changes
     if (dataChanged) {
         saveData(data);
-    }
-}
-
-// Toggle dark/light mode
-function toggleDarkMode() {
-    isDarkMode = !isDarkMode;
-    localStorage.setItem('darkMode', isDarkMode);
-    applyTheme();
-    
-    // Update the toggle button icon if it exists
-    const toggleIcon = document.querySelector('.theme-toggle i');
-    if (toggleIcon) {
-        toggleIcon.className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
-    }
-}
-
-// Apply the current theme
-function applyTheme() {
-    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
-    
-    // Update the toggle button icon if it exists
-    const toggleIcon = document.querySelector('.theme-toggle i');
-    if (toggleIcon) {
-        toggleIcon.className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
     }
 } 
