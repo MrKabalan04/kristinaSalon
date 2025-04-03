@@ -45,20 +45,37 @@ exports.handler = async function(event, context) {
     }
 
     try {
+        console.log('Fetching data from Firebase...');
+        
         // Get data from Firebase
         const dataRef = ref(database, 'data');
         const snapshot = await get(dataRef);
         
+        console.log('Firebase snapshot:', snapshot.exists() ? 'Data exists' : 'No data');
+        
         if (snapshot.exists()) {
+            const data = snapshot.val();
+            console.log('Data retrieved:', JSON.stringify(data).substring(0, 100) + '...');
+            
+            // Ensure services and categories are arrays
+            if (!Array.isArray(data.services)) {
+                data.services = [];
+            }
+            if (!Array.isArray(data.categories)) {
+                data.categories = [];
+            }
+            
             return {
                 statusCode: 200,
                 headers,
                 body: JSON.stringify({
                     success: true,
-                    data: snapshot.val()
+                    data: data
                 })
             };
         } else {
+            console.log('No data found, returning default structure');
+            
             // Return default data if nothing exists
             return {
                 statusCode: 200,
@@ -80,7 +97,7 @@ exports.handler = async function(event, context) {
             headers,
             body: JSON.stringify({ 
                 success: false,
-                error: 'Failed to fetch data from database' 
+                error: 'Failed to fetch data from database: ' + error.message
             })
         };
     }

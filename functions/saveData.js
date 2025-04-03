@@ -45,7 +45,9 @@ exports.handler = async function(event, context) {
     }
 
     try {
+        console.log('Received data to save');
         const data = JSON.parse(event.body);
+        console.log('Parsed data:', JSON.stringify(data).substring(0, 100) + '...');
         
         // Validate data structure
         if (!data || typeof data !== 'object') {
@@ -54,15 +56,19 @@ exports.handler = async function(event, context) {
 
         // Ensure services and categories are arrays
         if (!Array.isArray(data.services)) {
+            console.log('Services is not an array, converting to empty array');
             data.services = [];
         }
         if (!Array.isArray(data.categories)) {
+            console.log('Categories is not an array, converting to empty array');
             data.categories = [];
         }
         
+        console.log('Saving data to Firebase...');
         // Save data to Firebase
         const dataRef = ref(database, 'data');
         await set(dataRef, data);
+        console.log('Data saved successfully');
         
         return {
             statusCode: 200,
@@ -79,7 +85,7 @@ exports.handler = async function(event, context) {
             headers,
             body: JSON.stringify({ 
                 success: false,
-                error: 'Failed to save data to database' 
+                error: 'Failed to save data to database: ' + error.message
             })
         };
     }

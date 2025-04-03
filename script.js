@@ -23,23 +23,29 @@ const database = firebase.database();
 // Function to fetch services from Firebase
 async function fetchServices() {
     try {
+        console.log('Fetching services...');
         const API_URL = window.location.hostname === 'localhost' 
           ? 'http://localhost:8888/.netlify/functions' 
           : '/.netlify/functions';
           
+        console.log('API URL:', API_URL);
         const response = await fetch(`${API_URL}/getData`);
+        console.log('Response status:', response.status);
+        
         if (!response.ok) {
-            throw new Error('Failed to fetch services');
+            throw new Error(`Failed to fetch services: ${response.status} ${response.statusText}`);
         }
+        
         const result = await response.json();
-        console.log('Fetched data:', result); // Debug log
+        console.log('Fetched data:', result);
         
         if (result.success && result.data) {
             // Make sure we're returning an array of services
             const services = Array.isArray(result.data.services) ? result.data.services : [];
-            console.log('Services:', services); // Debug log
+            console.log('Services:', services);
             return services;
         }
+        console.log('No services found in data');
         return [];
     } catch (error) {
         console.error('Error fetching services:', error);
@@ -49,6 +55,7 @@ async function fetchServices() {
 
 // Function to render services
 async function renderServices() {
+    console.log('Rendering services...');
     const servicesSection = document.querySelector('.services-section');
     if (!servicesSection) {
         console.error('Services section not found');
@@ -58,9 +65,10 @@ async function renderServices() {
     servicesSection.innerHTML = '';
     
     const services = await fetchServices();
-    console.log('Rendering services:', services); // Debug log
+    console.log('Rendering services:', services);
     
     if (!services || services.length === 0) {
+        console.log('No services to render');
         servicesSection.innerHTML = '<p class="no-services">No services available</p>';
         return;
     }
@@ -68,6 +76,8 @@ async function renderServices() {
     let currentCategory = null;
     
     services.forEach(item => {
+        console.log('Processing service:', item);
+        
         if (item.spacer) {
             const spacer = document.createElement('div');
             spacer.className = 'service-spacer';
@@ -103,6 +113,8 @@ async function renderServices() {
         
         servicesSection.appendChild(serviceItem);
     });
+    
+    console.log('Services rendered successfully');
 }
 
 // Function to apply theme
