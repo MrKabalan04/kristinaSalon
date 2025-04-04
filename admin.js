@@ -366,23 +366,37 @@ async function handleLogout() {
 }
 
 // Show section
-function showSection(sectionId) {
-    console.log('Showing section:', sectionId);
+function showSection(sectionName) {
     // Hide all sections
     document.querySelectorAll('.content-section').forEach(section => {
         section.style.display = 'none';
     });
-
+    
     // Show selected section
-    const selectedSection = document.getElementById(`${sectionId}Section`);
-    if (selectedSection) {
-        selectedSection.style.display = 'block';
-    }
-
-    // Update active state in navigation
+    document.getElementById(`${sectionName}Section`).style.display = 'block';
+    
+    // Update nav links
     document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.toggle('active', link.getAttribute('data-section') === sectionId);
+        link.classList.remove('active');
+        if (link.getAttribute('data-section') === sectionName) {
+            link.classList.add('active');
+        }
     });
+
+    // Update header and buttons
+    const sectionTitle = document.getElementById('sectionTitle');
+    const addServiceBtn = document.getElementById('addServiceBtn');
+    const addCategoryBtn = document.getElementById('addCategoryBtn');
+
+    if (sectionName === 'services') {
+        sectionTitle.textContent = 'Services Management';
+        addServiceBtn.style.display = 'block';
+        addCategoryBtn.style.display = 'none';
+    } else if (sectionName === 'categories') {
+        sectionTitle.textContent = 'Categories Management';
+        addServiceBtn.style.display = 'none';
+        addCategoryBtn.style.display = 'block';
+    }
 }
 
 // Reset form

@@ -235,3 +235,56 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load and render services
     loadAndRenderServices();
 });
+
+function renderService(service) {
+    let priceValue = service.price.toString().trim();
+    
+    // Remove any existing $ symbol
+    priceValue = priceValue.replace('$', '');
+    
+    let priceDisplay;
+    if (priceValue.toLowerCase().includes('/nail')) {
+        const [price] = priceValue.split('/');
+        priceDisplay = `
+            <div class="service-price">
+                <span class="price-dollar">$</span>
+                <div class="price-content">
+                    <span class="price-number">${price}</span>
+                    <span class="price-suffix">/nail</span>
+                </div>
+            </div>
+        `;
+    } else if (priceValue.toLowerCase().includes('half')) {
+        priceDisplay = `
+            <div class="service-price">
+                <span class="price-dollar">$</span>
+                <div class="price-content">
+                    <span class="price-number half-price">half price</span>
+                </div>
+            </div>
+        `;
+    } else {
+        priceDisplay = `
+            <div class="service-price">
+                <span class="price-dollar">$</span>
+                <div class="price-content">
+                    <span class="price-number">${priceValue}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="service-item">
+            <div class="service-name">${service.name}</div>
+            ${priceDisplay}
+        </div>
+    `;
+}
+
+function renderServices(services) {
+    const servicesContainer = document.querySelector('.services-section');
+    if (!servicesContainer) return;
+
+    servicesContainer.innerHTML = services.map(service => renderService(service)).join('');
+}

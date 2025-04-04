@@ -1,23 +1,17 @@
+/* Base Styles */
 :root {
     /* Dark Mode (default) */
     --primary-color: #000000;
-    --accent-color: #e4a7b3;
+    --accent-color: #ff9ecd;
     --text-color: #ffffff;
-    --border-color: #e4a7b3;
-    --card-bg: #1a1a1a;
-    --shadow-color: rgba(0, 0, 0, 0.2);
-    --highlight: rgba(255, 255, 255, 0.1);
+    --bg-color: #000000;
 }
 
 /* Light Mode Variables */
-.light-mode {
-    --primary-color: #f8f8f8;
-    --accent-color: #e4a7b3;
+body.light-mode {
+    --primary-color: #ffffff;
     --text-color: #333333;
-    --border-color: #e4a7b3;
-    --card-bg: #ffffff;
-    --shadow-color: rgba(0, 0, 0, 0.1);
-    --highlight: rgba(0, 0, 0, 0.05);
+    --bg-color: #ffffff;
 }
 
 * {
@@ -27,14 +21,15 @@
 }
 
 body {
-    font-family: 'Playfair Display', serif;
-    background-color: var(--primary-color);
+    background-color: var(--bg-color);
+    margin: 0;
+    padding: 20px;
+    font-family: 'Montserrat', sans-serif;
     color: var(--text-color);
     min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
     transition: background-color 0.3s, color 0.3s;
 }
 
@@ -42,56 +37,141 @@ body {
     max-width: 600px;
     width: 100%;
     padding: 40px;
-    border: 2px solid var(--border-color);
+    border: 2px solid var(--accent-color);
     position: relative;
     background-color: var(--primary-color);
 }
 
 .price-list {
     position: relative;
-    padding: 20px;
+    padding: 20px 60px;
+    max-width: 900px;
+    margin: 0 auto;
+    background-color: var(--bg-color);
 }
 
+/* The vertical line */
 .price-list::after {
     content: '';
     position: absolute;
-    right: 65px; /* Adjusted from 80px to 65px to move line closer to prices */
-    top: 20px;
-    bottom: 20px;
+    left: 58%;
+    top: 180px;
+    bottom: 220px;
     width: 1px;
     background-color: var(--accent-color);
     opacity: 0.8;
+    transform: translateX(-50%);
+}
+
+.service-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.7rem;
+    position: relative;
+    padding: 0 30px;
+}
+
+.service-name {
+    font-size: 18px;
+    flex: 1;
+    padding-right: 80px;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.service-price {
+    color: var(--accent-color);
+    display: grid;
+    grid-template-columns: 15px 1fr;
+    align-items: start;
+    min-width: 100px;
+    font-size: 18px;
+    position: relative;
+    gap: 4px;
+}
+
+.price-dollar {
+    width: 15px;
+    text-align: center;
+}
+
+.price-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.price-number {
+    line-height: 1.2;
+}
+
+.price-number.half-price {
+    font-style: italic;
+}
+
+.price-suffix {
+    font-size: 1em;
+    line-height: 1;
+}
+
+/* For prices with /nail */
+.price-with-suffix {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.price-with-suffix .price-number {
+    line-height: 1;
+}
+
+.price-with-suffix .price-suffix {
+    font-size: 0.9em;
+    margin-top: -2px;
+}
+
+/* Special price styles */
+.service-price.with-suffix {
+    font-size: 0.95em;
+}
+
+.half-price {
+    white-space: nowrap;
+    font-style: italic;
 }
 
 h1.price-title {
     font-size: 72px;
     text-align: center;
     margin-bottom: 40px;
-    letter-spacing: 12px;
+    letter-spacing: 15px;
     font-weight: normal;
-    position: relative;
+    color: var(--text-color);
     display: flex;
     justify-content: center;
     align-items: baseline;
+    gap: 15px;
 }
 
 h1.price-title .main-text {
-    font-size: 72px;
-    letter-spacing: 12px;
+    color: var(--text-color);
 }
 
 h1.price-title .list-text {
     font-family: 'Dancing Script', cursive;
     color: var(--accent-color);
     font-size: 64px;
-    margin-left: 15px;
     font-style: italic;
+    letter-spacing: 0;
 }
 
 .services-section {
     margin: 2rem auto;
-    max-width: 600px;
-    padding: 0 1rem;
+    max-width: 1000px;
+    padding: 0;
     transition: opacity 0.3s ease;
 }
 
@@ -115,56 +195,13 @@ h1.price-title .list-text {
 }
 
 .category-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.5rem;
-    margin: 2rem 0 1rem;
+    margin: 2rem 0 1.5rem;
+    font-size: 1.3rem;
     color: var(--accent-color);
     text-transform: uppercase;
     letter-spacing: 2px;
-    text-align: center;
-}
-
-.service-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
-    padding: 0.5rem 0;
-    font-size: 18px;
-    letter-spacing: 1px;
-    position: relative;
-    padding-right: 20px; /* Added padding to prevent prices from touching the line */
-}
-
-.service-name {
-    color: var(--text-color);
-    margin-right: 1rem;
-    position: relative;
-}
-
-.service-price {
-    color: var(--accent-color);
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    position: relative;
-    padding-left: 15px;
-    min-width: 60px; /* Added to ensure consistent spacing */
-    justify-content: flex-end; /* Added to align prices */
-}
-
-.service-price::before {
-    display: none;
-}
-
-.price-suffix {
-    font-size: 0.9em;
-    margin-right: 1px;
-}
-
-.price-number {
-    font-weight: normal;
+    text-align: left;
+    padding-right: 80px;
 }
 
 .signature {
@@ -275,27 +312,24 @@ body.light-mode .light-icon {
     opacity: 0;
 }
 
+/* Responsive Design */
+
 @media (max-width: 480px) {
     .menu-container {
         padding: 20px;
     }
-
     h1.price-title {
         font-size: 36px;
     }
-
     h1.price-title .list-text {
         font-size: 32px;
     }
-
     .service-item {
         font-size: 14px;
     }
-
     .signature .name {
         font-size: 48px;
     }
-
     .signature .nails {
         font-size: 14px;
     }
@@ -342,7 +376,6 @@ body.light-mode .light-icon {
     body {
         padding: 10px;
     }
-
     .menu-container {
         transform-origin: top center;
     }
@@ -362,13 +395,11 @@ body.light-mode .light-icon {
         padding: 10px;
         align-items: flex-start;
     }
-
     .menu-container {
         margin: 10px auto;
         max-height: 90vh;
         overflow-y: auto;
     }
-
     .social-links {
         position: relative;
         bottom: auto;
@@ -392,15 +423,15 @@ body.light-mode .light-icon {
     body:not(.light-mode) {
         --primary-color: #000000;
         --text-color: #ffffff;
-        --card-bg: #1a1a1a;
+        --bg-color: #1a1a1a;
     }
 }
 
 @media (prefers-color-scheme: light) {
     body:not(.dark-mode) {
-        --primary-color: #f8f8f8;
+        --primary-color: #ffffff;
         --text-color: #333333;
-        --card-bg: #ffffff;
+        --bg-color: #ffffff;
     }
 }
 
@@ -415,7 +446,7 @@ body.light-mode .light-icon {
 }
 
 /* Focus styles for accessibility */
-button:focus, 
+button:focus,
 a:focus {
     outline: 2px solid var(--accent-color);
     outline-offset: 2px;
@@ -426,18 +457,15 @@ a:focus {
     .theme-toggle-btn {
         display: none !important;
     }
-
     body {
         background-color: white;
         color: black;
     }
-
     .menu-container {
         box-shadow: none;
         border: 1px solid #ccc;
         transform: scale(1) !important;
     }
-
     .service-item {
         break-inside: avoid;
         page-break-inside: avoid;
@@ -466,21 +494,16 @@ a:focus {
 }
 
 .powered-by {
-    text-align: center;
-    padding: 15px 0;
-    font-size: 1rem;
-    color: var(--text-color);
-    font-family: 'Playfair Display', serif;
-    opacity: 0.8;
-    letter-spacing: 1px;
-    transition: opacity 0.3s ease;
     position: relative;
-    width: 100%;
-    background: var(--bg-color);
-    border-bottom: 1px solid var(--border-color);
+    z-index: 2;
+    background-color: var(--bg-color);
+    padding: 10px 0;
     margin-bottom: 20px;
+    font-size: 14px;
+    color: var(--text-color);
+    letter-spacing: 1px;
+    font-family: 'Montserrat', sans-serif;
+    text-align: center;
+    border-bottom: 1px solid var(--accent-color);
+    opacity: 0.8;
 }
-
-.powered-by:hover {
-    opacity: 1;
-} 

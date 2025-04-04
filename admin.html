@@ -19,7 +19,7 @@
             background-color: var(--secondary-color);
             color: white;
             min-height: 100vh;
-            padding-top: 80px;
+            padding-top: 140px;
         }
 
         .navbar {
@@ -43,8 +43,35 @@
             color: var(--accent-color);
         }
 
+        .fixed-buttons-container {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            background-color: var(--secondary-color);
+            padding: 1rem 2rem;
+            z-index: 1020;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #servicesSection, #categoriesSection {
+            display: none;
+        }
+
+        #servicesSection.active, #categoriesSection.active {
+            display: block;
+        }
+
+        #serviceButtons, #categoryButtons {
+            display: none;
+        }
+
+        #serviceButtons.active, #categoryButtons.active {
+            display: flex;
+        }
+
         .content-section {
-            padding: 2rem;
+            padding-top: 20px;
         }
 
         .card {
@@ -114,16 +141,23 @@
         </div>
     </nav>
 
+    <!-- Fixed Buttons Container -->
+    <div class="fixed-buttons-container">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 id="sectionTitle">Services Management</h2>
+            <button class="btn btn-primary" id="addServiceBtn">
+                <i class="fas fa-plus"></i> Add Service
+            </button>
+            <button class="btn btn-primary" id="addCategoryBtn" style="display: none;">
+                <i class="fas fa-plus"></i> Add Category
+            </button>
+        </div>
+    </div>
+
     <!-- Main Content -->
     <div class="container-fluid">
         <!-- Services Section -->
         <div id="servicesSection" class="content-section">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Services Management</h2>
-                <button class="btn btn-primary" id="addServiceBtn">
-                    <i class="fas fa-plus"></i> Add Service
-                </button>
-            </div>
             <div class="card">
                 <div class="card-body">
                     <div class="table-responsive">
@@ -147,12 +181,6 @@
 
         <!-- Categories Section -->
         <div id="categoriesSection" class="content-section" style="display: none;">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Categories Management</h2>
-                <button class="btn btn-primary" id="addCategoryBtn">
-                    <i class="fas fa-plus"></i> Add Category
-                </button>
-            </div>
             <div class="card">
                 <div class="card-body">
                     <div class="table-responsive">
