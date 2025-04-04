@@ -3,130 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Kristina Nails</title>
-    <link rel="stylesheet" href="admin-styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Kristina Nails Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-color: #2d2d2d;
+            --secondary-color: #1a1a1a;
+            --accent-color: #ff4d6d;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            color: white;
+            min-height: 100vh;
+            padding-top: 80px;
+        }
+
+        .navbar {
+            background-color: var(--primary-color);
+            padding: 1rem;
+        }
+
+        .navbar-brand {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            transition: color 0.3s ease;
+            cursor: pointer;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent-color);
+        }
+
+        .content-section {
+            padding: 2rem;
+        }
+
+        .card {
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .table {
+            color: white;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .btn-primary:hover {
+            background-color: #ff3355;
+            border-color: #ff3355;
+        }
+
+        .modal-content {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .form-control, .form-select {
+            background-color: var(--secondary-color);
+            border-color: #444;
+            color: white;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: var(--secondary-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-close-white {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+    </style>
 </head>
 <body>
-    <!-- Login Container -->
-    <div class="login-container">
-        <div class="logo">
-            <span class="name">Kristina</span>
-            <span class="nails">NAILS</span>
-        </div>
-        <form class="login-form">
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" required>
-            </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" required>
-            </div>
-            <button type="submit">Login</button>
-        </form>
-        <div class="error-message"></div>
-    </div>
-
-    <!-- Admin Panel -->
-    <div class="admin-panel">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="logo">
-                <span class="name">Kristina</span>
-                <span class="nails">NAILS</span>
-            </div>
-            <nav class="nav-menu">
-                <div class="nav-item active" data-view="services">
-                    <i class="fas fa-list"></i>
-                    <span>Services</span>
-                </div>
-                <div class="nav-item" data-view="categories">
-                    <i class="fas fa-tags"></i>
-                    <span>Categories</span>
-                </div>
-            </nav>
-            <button class="logout-btn">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>Logout</span>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Kristina Nails</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
             </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-section="services">Services</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-section="categories">Categories</a>
+                    </li>
+                </ul>
+                <button class="btn btn-outline-light" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid">
+        <!-- Services Section -->
+        <div id="servicesSection" class="content-section">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Services Management</h2>
+                <button class="btn btn-primary" id="addServiceBtn">
+                    <i class="fas fa-plus"></i> Add Service
+                </button>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table" id="servicesTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Price</th>
+                                    <th>Category</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Services will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Services View -->
-            <div class="view-section active" id="services-view">
-                <div class="section-header">
-                    <h2>Services Management</h2>
-                    <button class="add-service">
-                        <i class="fas fa-plus"></i>
-                        Add Service
-                    </button>
-                </div>
-                <div class="services-list"></div>
+        <!-- Categories Section -->
+        <div id="categoriesSection" class="content-section" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Categories Management</h2>
+                <button class="btn btn-primary" id="addCategoryBtn">
+                    <i class="fas fa-plus"></i> Add Category
+                </button>
             </div>
-
-            <!-- Categories View -->
-            <div class="view-section" id="categories-view">
-                <div class="section-header">
-                    <h2>Categories Management</h2>
-                    <button class="add-category">
-                        <i class="fas fa-plus"></i>
-                        Add Category
-                    </button>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table" id="categoriesTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Categories will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="categories-list"></div>
             </div>
         </div>
     </div>
 
     <!-- Service Modal -->
-    <div id="service-modal" class="modal">
-        <div class="modal-content">
-            <button class="close-modal">&times;</button>
-            <h2 class="modal-title">Add Service</h2>
-            <form id="service-form">
-                <div class="form-group">
-                    <label for="service-name">Service Name</label>
-                    <input type="text" id="service-name" name="service-name" required>
+    <div class="modal fade" id="serviceModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="serviceModalTitle">Add Service</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="form-group">
-                    <label for="service-category">Category</label>
-                    <select id="service-category" name="service-category" class="category-select">
-                        <option value="">No Category</option>
-                    </select>
+                <div class="modal-body">
+                    <form id="serviceForm">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Service Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="price" class="form-label">Price</label>
+                            <input type="text" class="form-control" id="price" name="price" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Category</label>
+                            <select class="form-select category-select" id="category" name="category">
+                                <option value="">Select Category</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Save</button>
+                    </form>
                 </div>
-                <div class="form-group">
-                    <label for="service-price">Price</label>
-                    <input type="text" id="service-price" name="service-price" required>
-                </div>
-                <button type="submit" class="save-btn">Save Service</button>
-            </form>
+            </div>
         </div>
     </div>
 
     <!-- Category Modal -->
-    <div id="category-modal" class="modal">
-        <div class="modal-content">
-            <button class="close-modal">&times;</button>
-            <h2 class="modal-title">Add Category</h2>
-            <form id="category-form">
-                <div class="form-group">
-                    <label for="category-name">Category Name</label>
-                    <input type="text" id="category-name" name="category-name" required>
+    <div class="modal fade" id="categoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="categoryModalTitle">Add Category</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <button type="submit" class="save-btn">Save Category</button>
-            </form>
+                <div class="modal-body">
+                    <form id="categoryForm">
+                        <div class="mb-3">
+                            <label for="categoryName" class="form-label">Category Name</label>
+                            <input type="text" class="form-control" id="categoryName" name="categoryName" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Save</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Success Message -->
-    <div class="success-message"></div>
+    <!-- Toast Notification -->
+    <div class="modal fade" id="notificationModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center">
+                    <p id="notificationMessage"></p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
-    <script src="admin.js"></script>
+    <!-- Scripts -->
+    <script type="module" src="admin.js"></script>
 </body>
-</html> 
+</html>

@@ -82,85 +82,71 @@ h1.price-title .list-text {
 }
 
 .services-section {
-    margin-bottom: 25px;
-    padding-bottom: 0;
-    position: relative;
+    margin: 2rem auto;
+    max-width: 600px;
+    padding: 0 1rem;
+    transition: opacity 0.3s ease;
 }
 
-.services-section:last-child {
-    margin-bottom: 0;
+.services-section.loading {
+    opacity: 0.6;
+}
+
+.loading-text, .no-services, .error {
+    text-align: center;
+    padding: 2rem;
+    font-style: italic;
+    color: var(--text-color);
+}
+
+.error {
+    color: #ff4d6d;
+}
+
+.category-section {
+    margin-bottom: 2rem;
+}
+
+.category-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    margin: 2rem 0 1rem;
+    color: var(--accent-color);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-align: center;
 }
 
 .service-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0;
     font-size: 18px;
-    padding: 2px 0;
-    position: relative;
     letter-spacing: 1px;
 }
 
-.service-item:last-child {
-    margin-bottom: 0;
-}
-
 .service-name {
-    flex-grow: 1;
-    padding-right: 15px;
-    position: relative;
-    white-space: nowrap;
-}
-
-.service-name::after {
-    display: none;
+    color: var(--text-color);
+    margin-right: 1rem;
 }
 
 .service-price {
     color: var(--accent-color);
-    font-weight: normal;
-    padding-left: 15px;
-    width: 100px;
-    position: relative;
-    z-index: 1;
     white-space: nowrap;
     display: flex;
-    justify-content: flex-start;
     align-items: center;
-}
-
-.service-price::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: -10px;  /* Start slightly above the first price */
-    height: calc(100% + 20px);  /* Extend slightly below */
-    width: 2px;
-    height: 20px;
-    background-color: var(--accent-color);
-    opacity: 0.8;
-}
-
-/* Only show the line for the first item in each section */
-.service-item:not(:first-child) .service-price::before {
-    top: -20px;
-    height: calc(100% + 40px);
-}
-
-/* Hide the line for the last item */
-.services-section:last-child .service-item:last-child .service-price::before {
-    height: 50%;
-}
-
-.price-number {
-    min-width: auto;
-    text-align: left;
+    gap: 2px;
 }
 
 .price-suffix {
-    color: var(--text-color);
-    margin-left: 5px;
-    font-size: 1em;
+    font-size: 0.9em;
+    margin-right: 1px;
+}
+
+.price-number {
+    font-weight: normal;
 }
 
 .signature {

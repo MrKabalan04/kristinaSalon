@@ -1,658 +1,424 @@
-// Global variables
-let services = [];
-let categories = [];
-let currentService = null;
-let currentEditIndex = null;
-let currentPriceType = 'fixed';
-let isDarkMode = localStorage.getItem('darkMode') === 'true';
-let data = {}; // Store the complete data object
-let isReorganizing = false; // Flag to prevent multiple auto-saves during reorganization
+import { createClient } from './supabase-config.js';
 
-// API endpoints
-const API_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:8888/.netlify/functions' 
-  : '/.netlify/functions';
+// Initialize Supabase client
+const supabase = createClient();
+console.log('Supabase client initialized');
 
-// Initialize Firebase
-const firebaseConfig = {
-    apiKey: "AIzaSyBimsxijDPv8t_pEtoFPpvCMxIopvQ3_y8",
-    authDomain: "kristinanails.firebaseapp.com",
-    databaseURL: "https://kristinanails-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "kristinanails",
-    storageBucket: "kristinanails.firebasestorage.app",
-    messagingSenderId: "1031548052588",
-    appId: "1:1031548052588:web:730d1eb220ba5401b3a449",
-    measurementId: "G-3SN5X0BLZM"
-};
+// Global state
+let currentServices = [];
+let currentCategories = [];
 
-// Initialize Firebase
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-const db = firebase.database();
-
-// Sign in anonymously to allow database access
-firebase.auth().signInAnonymously()
-    .then(() => {
-        console.log('Signed in anonymously');
-    })
-    .catch((error) => {
-        console.error('Error signing in:', error);
-    });
-
-// Listen for auth state changes
-firebase.auth().onAuthStateChanged((user) => {
-    if (user) {
-        console.log('User is signed in:', user.uid);
-    } else {
-        console.log('User is signed out');
-    }
-});
-
-// DOM Elements
-const loginContainer = document.querySelector('.login-container');
-const adminPanel = document.querySelector('.admin-panel');
-const loginForm = document.querySelector('.login-form');
-const errorMessage = document.querySelector('.error-message');
-const navItems = document.querySelectorAll('.nav-item');
-const viewSections = document.querySelectorAll('.view-section');
-const servicesList = document.querySelector('.services-list');
-const categoriesList = document.querySelector('.categories-list');
-const addServiceBtn = document.querySelector('.add-service');
-const addCategoryBtn = document.querySelector('.add-category');
-const logoutBtn = document.querySelector('.logout-btn');
-const serviceModal = document.getElementById('service-modal');
-const categoryModal = document.getElementById('category-modal');
-const serviceForm = document.getElementById('service-form');
-const categoryForm = document.getElementById('category-form');
-const successMessage = document.querySelector('.success-message');
-const notificationModal = document.createElement('div');
-notificationModal.className = 'notification-modal';
-notificationModal.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 15px 25px;
-    background: #4CAF50;
-    color: white;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    z-index: 1000;
-    display: none;
-    transition: opacity 0.3s ease;
-`;
-document.body.appendChild(notificationModal);
-
-// Event Listeners
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize the application
-    initializeApp();
-    
-    // Add event listeners
-    loginForm?.addEventListener('submit', handleLogin);
-    navItems.forEach(item => item.addEventListener('click', handleNavigation));
-    addServiceBtn?.addEventListener('click', () => openServiceModal());
-    addCategoryBtn?.addEventListener('click', () => openCategoryModal());
-    logoutBtn?.addEventListener('click', handleLogout);
-    serviceForm?.addEventListener('submit', handleServiceSubmit);
-    categoryForm?.addEventListener('submit', handleCategorySubmit);
-    document.querySelectorAll('.close-modal').forEach(btn => {
-        btn?.addEventListener('click', () => {
-            const modal = btn.closest('.modal');
-            if (modal) {
-                modal.style.display = 'none';
-            }
-        });
-    });
-
-    // Apply theme
-    applyTheme();
-});
-
-// Initialize application
-async function initializeApp() {
+// Initialize admin panel
+async function initAdminPanel() {
+    console.log('Initializing admin panel...');
     try {
-        // Check if user is logged in
-        if (localStorage.getItem('adminSession') === 'active') {
-            loginContainer.style.display = 'none';
-            adminPanel.style.display = 'grid';
-            await loadData();
-            
-            // Set initial button visibility based on default view (services)
-            if (addServiceBtn && addCategoryBtn) {
-                addServiceBtn.style.display = 'flex';
-                addCategoryBtn.style.display = 'none';
-            }
-        } else {
-            loginContainer.style.display = 'block';
-            adminPanel.style.display = 'none';
+        // Check if user is logged in via localStorage
+        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        if (!isLoggedIn) {
+            console.log('Not logged in via localStorage, redirecting...');
+            window.location.href = 'login.html';
+            return;
         }
+
+        console.log('Loading initial data...');
+        // Load initial data
+        await Promise.all([
+            loadCategories(),
+            loadServices()
+        ]);
+
+        setupEventListeners();
+        showSection('services'); // Default to services section
+        console.log('Admin panel initialized successfully');
     } catch (error) {
         console.error('Error initializing app:', error);
-        showNotification('Error initializing application', false);
+        showToast('Error initializing application. Please refresh the page.');
     }
 }
 
-// Load data from Firebase Realtime Database
-async function loadData() {
+// Load categories from Supabase
+async function loadCategories() {
+    console.log('Loading categories...');
     try {
-        console.log('Loading data from Firebase...');
-        
-        // Fetch data from Firebase
-        const snapshot = await db.ref('/').once('value');
-        const data = snapshot.val() || {};
-        
-        // Extract services and categories
-        services = Array.isArray(data.services) ? data.services : [];
-        categories = Array.isArray(data.categories) ? data.categories : [];
-        
-        console.log('Data loaded:', { services, categories });
-        
-        // Save to localStorage as backup
-        localStorage.setItem('salonData', JSON.stringify({ services, categories }));
-        
-        renderServices();
+        const { data, error } = await supabase
+            .from('categories')
+            .select('*')
+            .order('created_at', { ascending: true }); // Order by creation time, oldest first
+
+        if (error) throw error;
+
+        currentCategories = data || [];
+        console.log('Categories loaded:', currentCategories);
         renderCategories();
-        updateCategorySelects();
+        updateCategoryDropdowns();
     } catch (error) {
-        console.error('Error loading data:', error);
-        showNotification('Error loading data. Using local data if available.', false);
-        
-        // Try localStorage as fallback
-        const localData = localStorage.getItem('salonData');
-        if (localData) {
-            const jsonData = JSON.parse(localData);
-            services = Array.isArray(jsonData.services) ? jsonData.services : [];
-            categories = Array.isArray(jsonData.categories) ? jsonData.categories : [];
-            
-            renderServices();
-            renderCategories();
-            updateCategorySelects();
-        }
+        console.error('Error loading categories:', error);
+        showToast('Error loading categories');
     }
 }
 
-// Save data to Firebase Realtime Database
-async function saveData() {
+// Load services from Supabase
+async function loadServices() {
+    console.log('Loading services...');
     try {
-        console.log('Saving data to Firebase...');
-        
-        // Filter out any invalid services or categories
-        const validServices = services.filter(service => service && service.name);
-        const validCategories = categories.filter(category => category && typeof category === 'string');
-        
-        // Save to Firebase
-        await db.ref('/').set({
-            services: validServices,
-            categories: validCategories
-        });
-        
-        console.log('Data saved successfully');
-        
-        // Save to localStorage as backup
-        localStorage.setItem('salonData', JSON.stringify({ 
-            services: validServices, 
-            categories: validCategories 
-        }));
-        
-        return true;
+        const { data, error } = await supabase
+            .from('services')
+            .select('*, categories(*)')
+            .order('created_at', { ascending: true }); // Order by creation time, oldest first
+
+        if (error) throw error;
+
+        currentServices = data || [];
+        console.log('Services loaded:', currentServices);
+        renderServices();
     } catch (error) {
-        console.error('Error saving data:', error);
-        showNotification('Failed to save to Firebase. Changes saved locally.', false);
-        return false;
+        console.error('Error loading services:', error);
+        showToast('Error loading services');
     }
 }
 
-// Render services list
-function renderServices() {
-    if (!servicesList) return;
+
+// Setup event listeners
+function setupEventListeners() {
+    console.log('Setting up event listeners...');
     
-    servicesList.innerHTML = services.map(service => `
-        <div class="service-item">
-            <div class="service-info">
-                <div class="service-name">${service.name}</div>
-                ${service.category ? `<div class="service-category">${service.category}</div>` : ''}
-                <div class="service-price">${service.price}</div>
-            </div>
-            <div class="service-actions">
-                <button class="action-btn edit" onclick="editService('${service.name}')">
+    // Navigation
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const section = e.target.closest('[data-section]').dataset.section;
+            if (section) {
+                console.log('Switching to section:', section);
+                showSection(section);
+            }
+        });
+    });
+
+    // Add buttons
+    const addServiceBtn = document.getElementById('addServiceBtn');
+    if (addServiceBtn) {
+        addServiceBtn.addEventListener('click', () => {
+            console.log('Opening add service modal');
+            resetForm('serviceForm');
+            document.getElementById('serviceModalTitle').textContent = 'Add New Service';
+            const modal = new bootstrap.Modal(document.getElementById('serviceModal'));
+            modal.show();
+        });
+    }
+
+    const addCategoryBtn = document.getElementById('addCategoryBtn');
+    if (addCategoryBtn) {
+        addCategoryBtn.addEventListener('click', () => {
+            console.log('Opening add category modal');
+            resetForm('categoryForm');
+            document.getElementById('categoryModalTitle').textContent = 'Add New Category';
+            const modal = new bootstrap.Modal(document.getElementById('categoryModal'));
+            modal.show();
+        });
+    }
+
+    // Form submissions
+    const serviceForm = document.getElementById('serviceForm');
+    if (serviceForm) {
+        serviceForm.addEventListener('submit', handleServiceSubmit);
+    }
+
+    const categoryForm = document.getElementById('categoryForm');
+    if (categoryForm) {
+        categoryForm.addEventListener('submit', handleCategorySubmit);
+    }
+
+    // Logout
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+    }
+
+    console.log('Event listeners setup complete');
+}
+
+// Handle service form submission
+async function handleServiceSubmit(e) {
+    e.preventDefault();
+    console.log('Handling service form submission...');
+    
+    const form = e.target;
+    const serviceId = form.dataset.serviceId;
+    
+    const serviceData = {
+        name: form.name.value.trim(),
+        price: form.price.value.trim(),
+        category_id: form.category.value || null
+    };
+
+    console.log('Submitting service data:', serviceData);
+
+    try {
+        const supabase = createClient();
+        
+        // Check session before submitting
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Current session during submission:', session);
+
+        let result;
+        if (serviceId) {
+            console.log('Updating existing service:', serviceId);
+            result = await supabase.from('services').update(serviceData).eq('id', serviceId);
+        } else {
+            console.log('Creating new service');
+            result = await supabase.from('services').insert(serviceData);
+        }
+
+        console.log('Supabase response:', result);
+
+        if (result.error) {
+            console.error('Supabase error:', result.error);
+            throw result.error;
+        }
+
+        await loadServices();
+        closeModal('serviceModal');
+        showToast(serviceId ? 'Service updated successfully' : 'Service added successfully');
+    } catch (error) {
+        console.error('Detailed error:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+        });
+        showToast(`Error saving service: ${error.message}`);
+    }
+}
+
+// Handle category form submission
+async function handleCategorySubmit(e) {
+    e.preventDefault();
+    console.log('Handling category form submission...');
+    
+    const form = e.target;
+    const categoryId = form.dataset.categoryId;
+    
+    const categoryData = {
+        name: form.categoryName.value.trim()
+    };
+
+    console.log('Category data:', categoryData);
+
+    try {
+        const { error } = categoryId
+            ? await supabase.from('categories').update(categoryData).eq('id', categoryId)
+            : await supabase.from('categories').insert(categoryData);
+
+        if (error) throw error;
+
+        await loadCategories();
+        closeModal('categoryModal');
+        showToast(categoryId ? 'Category updated successfully' : 'Category added successfully');
+    } catch (error) {
+        console.error('Error saving category:', error);
+        showToast('Error saving category');
+    }
+}
+
+// Render services table
+function renderServices() {
+    console.log('Rendering services table...');
+    const tbody = document.querySelector('#servicesTable tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = currentServices.map(service => `
+        <tr>
+            <td>${service.name}</td>
+            <td>${service.price}</td>
+            <td>${service.categories?.name || 'No Category'}</td>
+            <td>
+                <button class="btn btn-sm btn-primary me-2" onclick="editService('${service.id}')">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button class="action-btn delete-btn" onclick="deleteService('${service.name}')">
+                <button class="btn btn-sm btn-danger" onclick="deleteService('${service.id}')">
                     <i class="fas fa-trash"></i>
                 </button>
-            </div>
-        </div>
+            </td>
+        </tr>
     `).join('');
 }
 
-// Render categories list
+// Render categories table
 function renderCategories() {
-    if (!categoriesList) return;
-    
-    categoriesList.innerHTML = '';
-    
-    // Filter out null or empty categories
-    categories = categories.filter(category => category && category.trim() !== '');
-    
-    categories.forEach((category, index) => {
-        const categoryItem = document.createElement('div');
-        categoryItem.className = 'category-item';
-        
-        // Count services in this category
-        const serviceCount = services.filter(service => service.category === category).length;
-        
-        categoryItem.innerHTML = `
-            <div class="category-info">
-                <span class="category-name">${category}</span>
-                <span class="service-count">${serviceCount} services</span>
-            </div>
-            <div class="category-actions">
-                <button class="action-btn edit" onclick="editCategory('${category}')">
+    console.log('Rendering categories table...');
+    const tbody = document.querySelector('#categoriesTable tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = currentCategories.map(category => `
+        <tr>
+            <td>${category.name}</td>
+            <td>
+                <button class="btn btn-sm btn-primary me-2" onclick="editCategory('${category.id}')">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button class="action-btn delete-btn" onclick="deleteCategory('${category}')">
+                <button class="btn btn-sm btn-danger" onclick="deleteCategory('${category.id}')">
                     <i class="fas fa-trash"></i>
                 </button>
-            </div>
-        `;
-        
-        categoriesList.appendChild(categoryItem);
-    });
+            </td>
+        </tr>
+    `).join('');
 }
 
-// Edit category
-async function editCategory(categoryName) {
-    const oldName = categoryName;
-    const newName = prompt('Enter new category name:', categoryName);
-    
-    if (newName && newName.trim() !== '' && newName !== oldName) {
-        // Update category name in categories array
-        const index = categories.indexOf(oldName);
-        if (index !== -1) {
-            categories[index] = newName;
-            
-            // Update category name in all services
-            services = services.map(service => {
-                if (service.category === oldName) {
-                    return { ...service, category: newName };
-                }
-                return service;
-            });
-            
-            // Save changes
-            const success = await saveData();
-            if (success) {
-                showNotification('Category updated successfully');
-                renderCategories();
-                renderServices();
-                updateCategorySelects();
-            }
-        }
-    }
-}
+// Update category dropdowns
+function updateCategoryDropdowns() {
+    console.log('Updating category dropdowns...');
+    const select = document.getElementById('category');
+    if (!select) return;
 
-// Update category selects
-function updateCategorySelects() {
-    const categorySelects = document.querySelectorAll('.category-select');
-    categorySelects.forEach(select => {
-        const currentValue = select.value;
-        select.innerHTML = `
-            <option value="">No Category</option>
-            ${categories.map(category => `
-                <option value="${category}" ${currentValue === category ? 'selected' : ''}>
-                    ${category}
-                </option>
-            `).join('')}
-        `;
-    });
-}
-
-// Handle login
-async function handleLogin(e) {
-    e.preventDefault();
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-
-    if (username === 'admin' && password === 'admin') {
-        localStorage.setItem('adminSession', 'active');
-        loginContainer.style.display = 'none';
-        adminPanel.style.display = 'grid';
-        await loadData();
-    } else {
-        errorMessage.textContent = 'Invalid username or password';
-        errorMessage.style.display = 'block';
-    }
-}
-
-// Handle logout
-function handleLogout() {
-    localStorage.removeItem('adminSession');
-    loginContainer.style.display = 'block';
-    adminPanel.style.display = 'none';
-}
-
-// Handle navigation
-function handleNavigation(e) {
-    const view = e.target.closest('.nav-item').dataset.view;
-    
-    // Update active nav item
-    navItems.forEach(item => item.classList.remove('active'));
-    e.target.closest('.nav-item').classList.add('active');
-    
-    // Update visible section
-    viewSections.forEach(section => {
-        section.classList.remove('active');
-        if (section.id === `${view}-view`) {
-            section.classList.add('active');
-        }
-    });
-
-    // Update title and buttons visibility
-    document.querySelector('.admin-title').textContent = 
-        view.charAt(0).toUpperCase() + view.slice(1) + ' Management';
-    
-    // Show/hide appropriate add buttons
-    if (addServiceBtn && addCategoryBtn) {
-        if (view === 'services') {
-            addServiceBtn.style.display = 'flex';
-            addCategoryBtn.style.display = 'none';
-        } else if (view === 'categories') {
-            addServiceBtn.style.display = 'none';
-            addCategoryBtn.style.display = 'flex';
-        } else {
-            // For other views (like settings), hide both
-            addServiceBtn.style.display = 'none';
-            addCategoryBtn.style.display = 'none';
-        }
-    }
-}
-
-// Delete service
-async function deleteService(serviceName) {
-    if (confirm('Are you sure you want to delete this service?')) {
-        services = services.filter(service => service.name !== serviceName);
-        await saveData();
-        renderServices();
-        showNotification('Service deleted successfully');
-    }
-}
-
-// Delete category
-async function deleteCategory(categoryName) {
-    if (!confirm(`Are you sure you want to delete the category "${categoryName}"?`)) {
-        return;
-    }
-    
-    // Remove category from list
-    categories = categories.filter(cat => cat !== categoryName);
-    
-    // Update services that used this category
-    services = services.map(service => {
-        if (service.category === categoryName) {
-            return { ...service, category: '' };
-        }
-        return service;
-    });
-    
-    // Save changes
-    const success = await saveData();
-    if (success) {
-        showNotification('Category deleted successfully');
-        renderCategories();
-        renderServices();
-        updateCategorySelects();
-    }
-}
-
-// Show message
-function showMessage(text, isSuccess = true) {
-    const messageElement = document.querySelector('.success-message');
-    if (!messageElement) return;
-    
-    messageElement.textContent = text;
-    messageElement.style.backgroundColor = isSuccess ? 'var(--success-color)' : 'var(--danger-color)';
-    messageElement.style.display = 'block';
-    
-    setTimeout(() => {
-        messageElement.style.display = 'none';
-    }, 3000);
-}
-
-// Open service modal
-function openServiceModal(service = null) {
-    currentService = service;
-    const modal = document.getElementById('service-modal');
-    const form = document.getElementById('service-form');
-    const title = modal.querySelector('.modal-title');
-    
-    title.textContent = service ? 'Edit Service' : 'Add Service';
-    
-    if (service) {
-        const existingService = services.find(s => s.name === service);
-        if (existingService) {
-            form.querySelector('#service-name').value = existingService.name;
-            form.querySelector('#service-category').value = existingService.category || '';
-            form.querySelector('#service-price').value = existingService.price || '';
-        }
-    } else {
-        form.reset();
-    }
-    
-    modal.style.display = 'flex';
-}
-
-// Category modal functions
-function openCategoryModal() {
-    if (!categoryModal || !categoryForm) return;
-    categoryForm.reset();
-    categoryModal.style.display = 'flex';
-}
-
-// Handle service submission
-async function handleServiceSubmit(event) {
-    event.preventDefault();
-    
-    const formData = new FormData(serviceForm);
-    const serviceData = {
-        name: formData.get('service-name').trim(),
-        price: formData.get('service-price').trim(),
-        priceType: currentPriceType,
-        category: formData.get('service-category').trim() || '' // Make category optional
-    };
-    
-    // Validate required fields
-    if (!serviceData.name || !serviceData.price) {
-        showNotification('Name and price are required', false);
-        return;
-    }
-    
-    if (currentEditIndex !== null) {
-        // Update existing service
-        services[currentEditIndex] = serviceData;
-    } else {
-        // Add new service
-        services.push(serviceData);
-    }
-    
-    // Save to Firebase
-    const success = await saveData();
-    if (success) {
-        showNotification(currentEditIndex !== null ? 'Service updated successfully' : 'Service added successfully');
-        serviceModal.style.display = 'none';
-        serviceForm.reset();
-        currentEditIndex = null;
-        renderServices();
-    }
+    select.innerHTML = `
+        <option value="">Select Category</option>
+        ${currentCategories.map(category => 
+            `<option value="${category.id}">${category.name}</option>`
+        ).join('')}
+    `;
 }
 
 // Edit service
-function editService(serviceName) {
-    const service = services.find(s => s.name === serviceName);
-    if (service) {
-        currentEditIndex = services.indexOf(service);
-        document.getElementById('service-name').value = service.name;
-        document.getElementById('service-price').value = service.price;
-        document.getElementById('service-category').value = service.category || '';
-        currentPriceType = service.priceType || 'fixed';
-        serviceModal.style.display = 'block';
+window.editService = function(id) {
+    console.log('Editing service:', id);
+    const service = currentServices.find(s => s.id === id);
+    if (!service) return;
+
+    const form = document.getElementById('serviceForm');
+    form.dataset.serviceId = id;
+    form.name.value = service.name;
+    form.price.value = service.price;
+    form.category.value = service.category_id || '';
+
+    document.getElementById('serviceModalTitle').textContent = 'Edit Service';
+    const modal = new bootstrap.Modal(document.getElementById('serviceModal'));
+    modal.show();
+};
+
+// Delete service
+window.deleteService = async function(id) {
+    console.log('Deleting service:', id);
+    if (!confirm('Are you sure you want to delete this service?')) return;
+
+    try {
+        const { error } = await supabase.from('services').delete().eq('id', id);
+        if (error) throw error;
+
+        await loadServices();
+        showToast('Service deleted successfully');
+    } catch (error) {
+        console.error('Error deleting service:', error);
+        showToast('Error deleting service');
+    }
+};
+
+// Edit category
+window.editCategory = function(id) {
+    console.log('Editing category:', id);
+    const category = currentCategories.find(c => c.id === id);
+    if (!category) return;
+
+    const form = document.getElementById('categoryForm');
+    form.dataset.categoryId = id;
+    form.categoryName.value = category.name;
+
+    document.getElementById('categoryModalTitle').textContent = 'Edit Category';
+    const modal = new bootstrap.Modal(document.getElementById('categoryModal'));
+    modal.show();
+};
+
+// Delete category
+window.deleteCategory = async function(id) {
+    console.log('Deleting category:', id);
+    if (!confirm('Are you sure you want to delete this category?')) return;
+
+    try {
+        const { error } = await supabase.from('categories').delete().eq('id', id);
+        if (error) throw error;
+
+        await loadCategories();
+        showToast('Category deleted successfully');
+    } catch (error) {
+        console.error('Error deleting category:', error);
+        showToast('Error deleting category');
+    }
+};
+
+// Handle logout
+async function handleLogout() {
+    console.log('Handling logout...');
+    try {
+        // Clear Supabase session
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+
+        // Clear localStorage
+        localStorage.removeItem('adminId');
+        localStorage.removeItem('adminUsername');
+        localStorage.removeItem('isLoggedIn');
+
+        // Redirect to login page
+        window.location.href = 'login.html';
+    } catch (error) {
+        console.error('Error during logout:', error);
+        showToast('Error during logout');
     }
 }
 
-// Handle category submission
-async function handleCategorySubmit(event) {
-    event.preventDefault();
-    
-    const categoryNameInput = document.getElementById('category-name');
-    const categoryName = categoryNameInput.value.trim();
-    
-    if (!categoryName) {
-        showNotification('Please enter a category name', false);
-        return;
-    }
-    
-    // Check if category already exists
-    if (categories.includes(categoryName)) {
-        showNotification('This category already exists', false);
-        return;
-    }
-    
-    // Add new category
-    categories.push(categoryName);
-    
-    // Save to Firebase
-    const success = await saveData();
-    if (success) {
-        showNotification('Category added successfully');
-        categoryNameInput.value = '';
-        categoryModal.style.display = 'none';
-        renderCategories();
-        updateCategorySelects();
-    }
-}
-
-// Reorganize services to include automatic spacers between categories
-function reorganizeServicesWithSpacers() {
-    isReorganizing = true;
-    
-    // Track current and previous categories
-    let currentCategory = null;
-    let previousCategory = null;
-    let reorganizedServices = [];
-    
-    // First pass: Remove all existing spacers
-    const servicesWithoutSpacers = services.filter(item => !item.spacer);
-    
-    // Sort services by category to ensure they're grouped properly
-    servicesWithoutSpacers.sort((a, b) => {
-        const catA = a.category || 'Uncategorized';
-        const catB = b.category || 'Uncategorized';
-        return catA.localeCompare(catB);
+// Show section
+function showSection(sectionId) {
+    console.log('Showing section:', sectionId);
+    // Hide all sections
+    document.querySelectorAll('.content-section').forEach(section => {
+        section.style.display = 'none';
     });
-    
-    // Second pass: Add services with spacers between categories
-    servicesWithoutSpacers.forEach((item, index) => {
-        currentCategory = item.category || 'Uncategorized';
-        
-        // If we're switching to a new category and it's not the first one, add a spacer
-        if (currentCategory !== previousCategory && previousCategory !== null) {
-            reorganizedServices.push({ spacer: true });
-        }
-        
-        reorganizedServices.push(item);
-        previousCategory = currentCategory;
+
+    // Show selected section
+    const selectedSection = document.getElementById(`${sectionId}Section`);
+    if (selectedSection) {
+        selectedSection.style.display = 'block';
+    }
+
+    // Update active state in navigation
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.toggle('active', link.getAttribute('data-section') === sectionId);
     });
-    
-    services = reorganizedServices;
-    isReorganizing = false;
 }
 
-// Show success message
-function showSuccessMessage(message) {
-    const successMessage = document.getElementById('success-message');
-    successMessage.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
-    successMessage.style.backgroundColor = 'var(--success-color)';
-    successMessage.style.display = 'flex';
+// Reset form
+function resetForm(formId) {
+    console.log('Resetting form:', formId);
+    const form = document.getElementById(formId);
+    if (!form) return;
     
-    setTimeout(() => {
-        successMessage.style.display = 'none';
-    }, 3000);
+    form.reset();
+    delete form.dataset.serviceId;
+    delete form.dataset.categoryId;
 }
 
-// Show error message
-function showErrorMessage(message) {
-    const successMessage = document.getElementById('success-message');
-    successMessage.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
-    successMessage.style.backgroundColor = 'var(--error-color)';
-    successMessage.style.display = 'flex';
-    
-    setTimeout(() => {
-        successMessage.style.display = 'none';
-        successMessage.style.backgroundColor = 'var(--success-color)';
-    }, 3000);
-}
-
-// Clean up existing problematic data
-function cleanupExistingData() {
-    if (!services || !Array.isArray(services)) return;
-    
-    let dataChanged = false;
-    
-    services.forEach(service => {
-        // Skip spacers
-        if (service.spacer) return;
-        
-        // Fix extremely long prices
-        if (service.price && service.price.length > 10) {
-            service.price = service.price.substring(0, 10) + '$';
-            if (service.price.includes('/nail')) {
-                service.price = service.price.substring(0, 7) + '$ /nail';
-            }
-            dataChanged = true;
-        }
-        
-        // Ensure prices have $ symbol
-        if (service.price && !service.price.includes('$') && !service.price.toLowerCase().includes('half')) {
-            service.price = `${service.price}$`;
-            dataChanged = true;
-        }
-    });
-    
-    // Save if we made any changes
-    if (dataChanged) {
-        saveData(data);
+// Close modal
+function closeModal(modalId) {
+    console.log('Closing modal:', modalId);
+    const modalElement = document.getElementById(modalId);
+    const modal = bootstrap.Modal.getInstance(modalElement);
+    if (modal) {
+        modal.hide();
     }
 }
 
-// Toggle dark/light mode
-function toggleDarkMode() {
-    isDarkMode = !isDarkMode;
-    localStorage.setItem('darkMode', isDarkMode);
+// Show toast notification
+function showToast(message) {
+    console.log('Showing toast:', message);
+    const modalElement = document.getElementById('notificationModal');
+    const messageElement = document.getElementById('notificationMessage');
     
-    applyTheme();
-}
-
-// Apply the current theme
-function applyTheme() {
-    if (isDarkMode) {
-        document.body.classList.add('dark-mode');
-        document.body.classList.remove('light-mode');
-    } else {
-        document.body.classList.add('light-mode');
-        document.body.classList.remove('dark-mode');
+    if (modalElement && messageElement) {
+        messageElement.textContent = message;
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+        setTimeout(() => modal.hide(), 2000);
     }
 }
 
-function showNotification(message, isSuccess = true) {
-    notificationModal.textContent = message;
-    notificationModal.style.background = isSuccess ? '#4CAF50' : '#f44336';
-    notificationModal.style.display = 'block';
-    notificationModal.style.opacity = '1';
-    
-    setTimeout(() => {
-        notificationModal.style.opacity = '0';
-        setTimeout(() => {
-            notificationModal.style.display = 'none';
-        }, 300);
-    }, 2000);
-} 
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', initAdminPanel);

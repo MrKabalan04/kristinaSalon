@@ -1,45 +1,21 @@
-// Set initial theme if not already set
-if (localStorage.getItem('darkMode') === null) {
-    // Default to dark mode
-    localStorage.setItem('darkMode', 'true');
-}
+import { createClient } from './supabase-config.js';
 
-// Firebase configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyBimsxijDPv8t_pEtoFPpvCMxIopvQ3_y8",
-    authDomain: "kristinanails.firebaseapp.com",
-    projectId: "kristinanails",
-    storageBucket: "kristinanails.firebasestorage.app",
-    messagingSenderId: "1031548052588",
-    appId: "1:1031548052588:web:730d1eb220ba5401b3a449",
-    measurementId: "G-3SN5X0BLZM"
-};
+// Global Supabase client
+const supabase = createClient();
 
-// Initialize Firebase
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-const db = firebase.firestore();
-
-// Function to fetch services from Firestore
+// Function to fetch services from Supabase
 async function fetchServices() {
     try {
-        console.log('Fetching services from Firestore...');
-        const servicesSnapshot = await db.collection('services').get();
-        
-        if (servicesSnapshot.empty) {
-            console.log('No services found in Firestore');
-            return [];
+        console.log('Fetching services...');
+        const { data: services, error: servicesError } = await supabase
+            .from('services')
+            .select('*, categories(*)')
+            .order('created_at', { ascending: true }); // Order by creation time, oldest first
+            
+        if (servicesError) {
+            console.error('Error fetching services:', servicesError);
+            throw servicesError;
         }
-        
-        const services = [];
-        servicesSnapshot.forEach(doc => {
-            services.push({
-                id: doc.id,
-                ...doc.data()
-            });
-        });
-        
         console.log('Fetched services:', services);
         return services;
     } catch (error) {
@@ -48,22 +24,19 @@ async function fetchServices() {
     }
 }
 
-// Function to fetch categories from Firestore
+// Function to fetch categories from Supabase
 async function fetchCategories() {
     try {
-        console.log('Fetching categories from Firestore...');
-        const categoriesSnapshot = await db.collection('categories').get();
-        
-        if (categoriesSnapshot.empty) {
-            console.log('No categories found in Firestore');
-            return [];
+        console.log('Fetching categories...');
+        const { data: categories, error: categoriesError } = await supabase
+            .from('categories')
+            .select('*')
+            .order('created_at', { ascending: true }); // Order by creation time, oldest first
+            
+        if (categoriesError) {
+            console.error('Error fetching categories:', categoriesError);
+            throw categoriesError;
         }
-        
-        const categories = [];
-        categoriesSnapshot.forEach(doc => {
-            categories.push(doc.data().name);
-        });
-        
         console.log('Fetched categories:', categories);
         return categories;
     } catch (error) {
@@ -72,146 +45,193 @@ async function fetchCategories() {
     }
 }
 
-// Function to render services
-async function renderServices() {
-    console.log('Starting to render services...');
+// Function to render menu
+function renderMenu(servicesByCategory) {
     const servicesSection = document.querySelector('.services-section');
-    if (!servicesSection) {
-        console.error('Services section not found');
-        return;
-    }
+    if (!servicesSection) return;
     
+    servicesSection.innerHTML = '';
+
+    // Sort categories by name
+    const sortedCategories = Object.values(servicesByCategory).sort((a, b) => 
+        a.name.localeCompare(b.name)
+    );
+
+    sortedCategories.forEach(category => {
+        if (category.services.length > 0) {
+            const categoryElement = document.createElement('div');
+            categoryElement.classList.add('category-section');
+            
+            const categoryTitle = document.createElement('h2');
+            categoryTitle.classList.add('category-title');
+            categoryTitle.textContent = category.name;
+            categoryElement.appendChild(categoryTitle);
+
+            // Sort services by name within each category
+            const sortedServices = category.services.sort((a, b) => 
+                a.name.localeCompare(b.name)
+            );
+
+            sortedServices.forEach(service => {
+                const serviceItem = document.createElement('div');
+                serviceItem.classList.add('service-item');
+                
+                // Format price to handle both number and text inputs
+                const priceText = service.price.toString().trim();
+                const hasPrefix = priceText.startsWith('$');
+                const displayPrice = hasPrefix ? priceText : priceText;
+                
+                serviceItem.innerHTML = `
+                    <span class="service-name">${service.name}</span>
+                    <span class="service-price">
+                        ${hasPrefix ? '' : '<span class="price-suffix">$</span>'}
+                        <span class="price-number">${displayPrice}</span>
+                    </span>
+                `;
+                categoryElement.appendChild(serviceItem);
+            });
+
+            servicesSection.appendChild(categoryElement);
+        }
+    });
+
+    // Add loading state handling
+    servicesSection.classList.remove('loading');
+}
+
+// Function to load and render services
+async function loadAndRenderServices() {
+    const servicesSection = document.querySelector('.services-section');
+    if (servicesSection) {
+        servicesSection.classList.add('loading');
+        servicesSection.innerHTML = '<p class="loading-text">Loading services...</p>';
+    }
+
     try {
         const [services, categories] = await Promise.all([
             fetchServices(),
             fetchCategories()
         ]);
-        
-        console.log('Data fetched:', { services, categories });
-        
+
+        console.log('Loaded data:', { services, categories });
+
         if (!services || services.length === 0) {
-            console.log('No services to display');
-            servicesSection.innerHTML = '<p class="no-services">No services available</p>';
+            console.log('No services found');
+            if (servicesSection) {
+                servicesSection.innerHTML = '<p class="no-services">No services available</p>';
+            }
             return;
         }
-        
-        // Clear the services section
-        servicesSection.innerHTML = '';
-        
+
+        // Create HTML content
+        const servicesHTML = document.createElement('div');
+
         // Group services by category
         const servicesByCategory = {};
+        categories.forEach(category => {
+            servicesByCategory[category.id] = {
+                name: category.name,
+                services: []
+            };
+        });
+
+        // Add services to their categories or directly to the list
         services.forEach(service => {
-            if (!service) return; // Skip null/undefined services
-            const category = service.category || 'Other Services';
-            if (!servicesByCategory[category]) {
-                servicesByCategory[category] = [];
-            }
-            servicesByCategory[category].push(service);
-        });
-        
-        // Sort categories alphabetically, but keep "Other Services" at the end
-        const sortedCategories = Object.keys(servicesByCategory).sort((a, b) => {
-            if (a === 'Other Services') return 1;
-            if (b === 'Other Services') return -1;
-            return a.localeCompare(b);
-        });
-        
-        // Render services by category
-        sortedCategories.forEach(category => {
-            // Add category header
-            const categoryHeader = document.createElement('div');
-            categoryHeader.className = 'category-header';
-            categoryHeader.textContent = category;
-            servicesSection.appendChild(categoryHeader);
+            const serviceItem = document.createElement('div');
+            serviceItem.classList.add('service-item');
             
-            // Add services in this category
-            servicesByCategory[category].forEach(service => {
-                if (!service || !service.name) return; // Skip invalid services
-                
-                const serviceItem = document.createElement('div');
-                serviceItem.className = 'service-item';
-                
-                // Format price based on price type
-                let price = service.price || '';
-                if (service.priceType === 'perNail') {
-                    price = `${price} /nail`;
+            const priceText = service.price.toString().trim();
+            const hasPrefix = priceText.startsWith('$');
+            const displayPrice = hasPrefix ? priceText : priceText;
+            
+            serviceItem.innerHTML = `
+                <span class="service-name">${service.name}</span>
+                <span class="service-price">
+                    ${hasPrefix ? '' : '<span class="price-suffix">$</span>'}
+                    <span class="price-number">${displayPrice}</span>
+                </span>
+            `;
+
+            if (service.category_id && service.categories) {
+                // If service has a category, add it to that category's services
+                if (!servicesByCategory[service.category_id]) {
+                    servicesByCategory[service.category_id] = {
+                        name: service.categories.name,
+                        services: []
+                    };
                 }
-                
-                serviceItem.innerHTML = `
-                    <span class="service-name">${service.name}</span>
-                    <span class="service-price">${price}</span>
-                `;
-                
-                servicesSection.appendChild(serviceItem);
-            });
+                servicesByCategory[service.category_id].services.push(serviceItem);
+            } else {
+                // If no category, add directly to main container
+                servicesHTML.appendChild(serviceItem);
+            }
         });
-        
-        console.log('Services rendered successfully');
+
+        // Add categorized services after uncategorized ones
+        Object.values(servicesByCategory).forEach(category => {
+            if (category.services.length > 0) {
+                const categoryElement = document.createElement('div');
+                categoryElement.classList.add('category-section');
+                
+                const categoryTitle = document.createElement('h2');
+                categoryTitle.classList.add('category-title');
+                categoryTitle.textContent = category.name;
+                categoryElement.appendChild(categoryTitle);
+
+                // Add all services for this category
+                category.services.forEach(serviceItem => {
+                    categoryElement.appendChild(serviceItem);
+                });
+
+                servicesHTML.appendChild(categoryElement);
+            }
+        });
+
+        // Update the services section
+        servicesSection.innerHTML = '';
+        servicesSection.appendChild(servicesHTML);
+        servicesSection.classList.remove('loading');
+
     } catch (error) {
-        console.error('Error rendering services:', error);
-        servicesSection.innerHTML = '<p class="error">Error loading services. Please try again later.</p>';
+        console.error('Error loading data:', error);
+        if (servicesSection) {
+            servicesSection.innerHTML = '<p class="error">Error loading services. Please try again later.</p>';
+        }
     }
 }
 
-// Function to apply theme
+// Theme functions
 function applyTheme() {
-    const isDarkMode = localStorage.getItem('darkMode') === 'true';
+    const isDarkMode = localStorage.getItem('theme') !== 'light'; // Default to dark mode
+    document.body.classList.remove('dark-mode', 'light-mode');
+    document.body.classList.add(isDarkMode ? 'dark-mode' : 'light-mode');
     
-    // Remove both classes first
-    document.body.classList.remove('dark-mode');
-    document.body.classList.remove('light-mode');
-    
-    // Then add the appropriate class
-    if (isDarkMode) {
-        document.body.classList.add('dark-mode');
-    } else {
-        document.body.classList.add('light-mode');
-    }
-    
-    // Update icon visibility
     const darkIcon = document.querySelector('.dark-icon');
     const lightIcon = document.querySelector('.light-icon');
     
     if (darkIcon && lightIcon) {
-        if (isDarkMode) {
-            darkIcon.style.display = 'none';
-            lightIcon.style.display = 'block';
-        } else {
-            darkIcon.style.display = 'block';
-            lightIcon.style.display = 'none';
-        }
+        darkIcon.style.display = isDarkMode ? 'none' : 'block';
+        lightIcon.style.display = isDarkMode ? 'block' : 'none';
     }
 }
 
-// Toggle dark mode
-function toggleDarkMode() {
-    const isDarkMode = localStorage.getItem('darkMode') === 'true';
-    localStorage.setItem('darkMode', (!isDarkMode).toString());
+function toggleTheme() {
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    localStorage.setItem('theme', isDarkMode ? 'light' : 'dark');
     applyTheme();
 }
 
-// Initialize the page
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        console.log('Initializing Firebase...');
-        // Initialize Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        console.log('Firebase initialized');
-        
-        // Apply theme
-        applyTheme();
-        
-        // Add event listener to theme toggle button
-        const themeToggleBtn = document.getElementById('toggle-theme-btn');
-        if (themeToggleBtn) {
-            themeToggleBtn.addEventListener('click', toggleDarkMode);
-        }
-        
-        // Load and display services
-        await renderServices();
-    } catch (error) {
-        console.error('Error during initialization:', error);
+// Initialize everything when the DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Set up theme
+    applyTheme();
+    
+    // Add theme toggle listener
+    const themeToggleBtn = document.getElementById('toggle-theme-btn');
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', toggleTheme);
     }
+    
+    // Load and render services
+    loadAndRenderServices();
 });
