@@ -55,9 +55,9 @@ body {
 .price-list::after {
     content: '';
     position: absolute;
-    right: 80px; /* Adjust this value based on your layout */
-    top: 0;
-    bottom: 0;
+    right: 65px; /* Adjusted from 80px to 65px to move line closer to prices */
+    top: 20px;
+    bottom: 20px;
     width: 1px;
     background-color: var(--accent-color);
     opacity: 0.8;
@@ -133,6 +133,7 @@ h1.price-title .list-text {
     font-size: 18px;
     letter-spacing: 1px;
     position: relative;
+    padding-right: 20px; /* Added padding to prevent prices from touching the line */
 }
 
 .service-name {
@@ -149,6 +150,8 @@ h1.price-title .list-text {
     gap: 2px;
     position: relative;
     padding-left: 15px;
+    min-width: 60px; /* Added to ensure consistent spacing */
+    justify-content: flex-end; /* Added to align prices */
 }
 
 .service-price::before {
