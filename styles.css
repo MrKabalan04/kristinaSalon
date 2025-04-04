@@ -48,12 +48,19 @@ body {
 }
 
 .price-list {
-    margin-bottom: 40px;
+    position: relative;
+    padding: 20px;
 }
 
-/* Remove the bigger line */
-.price-list::before {
-    display: none;
+.price-list::after {
+    content: '';
+    position: absolute;
+    right: 80px; /* Adjust this value based on your layout */
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-color: var(--accent-color);
+    opacity: 0.8;
 }
 
 h1.price-title {
@@ -142,8 +149,6 @@ h1.price-title .list-text {
     gap: 2px;
     position: relative;
     padding-left: 15px;
-    border-left: 1px solid var(--accent-color);
-    margin-left: 15px;
 }
 
 .service-price::before {
