@@ -57,7 +57,7 @@ body {
 .price-list::after {
     content: '';
     position: absolute;
-    left: 58%;
+    left: 75%;
     top: 125px;
     bottom: 220px;
     width: 1px;
@@ -82,7 +82,6 @@ body {
     color: var(--text-color);
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .service-price {
@@ -94,6 +93,7 @@ body {
     font-size: 18px;
     position: relative;
     gap: 4px;
+    margin-right: -100px;
 }
 
 .price-dollar {
