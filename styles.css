@@ -125,11 +125,13 @@ h1.price-title .list-text {
     padding: 0.5rem 0;
     font-size: 18px;
     letter-spacing: 1px;
+    position: relative;
 }
 
 .service-name {
     color: var(--text-color);
     margin-right: 1rem;
+    position: relative;
 }
 
 .service-price {
@@ -138,6 +140,14 @@ h1.price-title .list-text {
     display: flex;
     align-items: center;
     gap: 2px;
+    position: relative;
+    padding-left: 15px;
+    border-left: 1px solid var(--accent-color);
+    margin-left: 15px;
+}
+
+.service-price::before {
+    display: none;
 }
 
 .price-suffix {
