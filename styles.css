@@ -27,6 +27,7 @@ body {
     font-family: 'Montserrat', sans-serif;
     color: var(--text-color);
     min-height: 100vh;
+    overflow-y: auto;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -40,14 +41,16 @@ body {
     border: 2px solid var(--accent-color);
     position: relative;
     background-color: var(--primary-color);
+    height: auto;
 }
 
 .price-list {
     position: relative;
     padding: 20px 60px;
     max-width: 900px;
-    margin: 0 auto;
+    margin: 20px auto;
     background-color: var(--bg-color);
+    height: auto;
 }
 
 /* The vertical line */
@@ -55,7 +58,7 @@ body {
     content: '';
     position: absolute;
     left: 58%;
-    top: 180px;
+    top: 125px;
     bottom: 220px;
     width: 1px;
     background-color: var(--accent-color);
@@ -393,12 +396,12 @@ body.light-mode .light-icon {
 @media (max-height: 500px) and (orientation: landscape) {
     body {
         padding: 10px;
-        align-items: flex-start;
+        height: auto;
+        overflow-y: auto;
     }
     .menu-container {
         margin: 10px auto;
-        max-height: 90vh;
-        overflow-y: auto;
+        height: auto;
     }
     .social-links {
         position: relative;
